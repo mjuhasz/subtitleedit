@@ -916,6 +916,98 @@ namespace Nikse.SubtitleEdit.Core.Common
                 text = text.Remove(firstIndex, endTag.Length).Insert(firstIndex, beginTag);
             }
 
+            // Pull leading dash out of italic block for dialog lines
+            // Single line: <i>- Text</i> -> - <i>Text</i>
+            if (italicBeginTagCount == 1 && italicEndTagCount == 1 && noOfLines == 1)
+            {
+                if (text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                    text.EndsWith(endTag, StringComparison.Ordinal))
+                {
+                    // Skip "<i>- " (5 chars) to get content
+                    var content = text.Substring(5, text.Length - 5 - endTag.Length);
+                    text = "- " + beginTag + content + endTag;
+                }
+                else if (text.StartsWith("<i>-", StringComparison.Ordinal) &&
+                         !text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                         text.EndsWith(endTag, StringComparison.Ordinal))
+                {
+                    // Handle <i>-Text</i> (no space after dash) -> - <i>Text</i>
+                    // Skip "<i>-" (4 chars) to get content
+                    var content = text.Substring(4, text.Length - 4 - endTag.Length);
+                    text = "- " + beginTag + content + endTag;
+                }
+            }
+
+            // Multi-line:
+            // <i>- Line one
+            // - Line two</i>
+            // becomes:
+            // - <i>Line one</i>
+            // - <i>Line two</i>
+            // Multi-line cases with italicBeginTagCount == 1 && italicEndTagCount == 1
+            if (italicBeginTagCount == 1 && italicEndTagCount == 1 && noOfLines == 2)
+            {
+                var newLineIdx = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                if (newLineIdx > 0)
+                {
+                    var firstLine = text.Substring(0, newLineIdx);
+                    var secondLine = text.Substring(newLineIdx + Environment.NewLine.Length);
+
+                    // Case 1: Both lines inside single italic block
+                    // <i>- Line one
+                    // - Line two</i>
+                    if (text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        text.EndsWith(endTag, StringComparison.Ordinal) &&
+                        secondLine.StartsWith("- ", StringComparison.Ordinal))
+                    {
+                        // Skip "<i>- " (5 chars) from firstLine
+                        var firstLineContent = firstLine.Substring(5);
+                        var secondLineContent = secondLine.Substring(2, secondLine.Length - 2 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 2: Only second line has <i>- text</i>
+                    else if (!firstLine.Contains(beginTag) && !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>- " (5 chars)
+                        var content = secondLine.Substring(5, secondLine.Length - 5 - endTag.Length);
+                        text = firstLine + Environment.NewLine + "- " + beginTag + content + endTag;
+                    }
+                    // Case 2b: Only second line has <i>-text</i> (no space)
+                    else if (!firstLine.Contains(beginTag) && !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("<i>-", StringComparison.Ordinal) &&
+                             !secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>-" (4 chars)
+                        var content = secondLine.Substring(4, secondLine.Length - 4 - endTag.Length);
+                        text = firstLine + Environment.NewLine + "- " + beginTag + content + endTag;
+                    }
+                    // Case 3: Only first line has <i>- text</i>
+                    else if (!secondLine.Contains(beginTag) && !secondLine.Contains(endTag) &&
+                             firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>- " (5 chars)
+                        var content = firstLine.Substring(5, firstLine.Length - 5 - endTag.Length);
+                        text = "- " + beginTag + content + endTag + Environment.NewLine + secondLine;
+                    }
+                    // Case 3b: Only first line has <i>-text</i> (no space)
+                    else if (!secondLine.Contains(beginTag) && !secondLine.Contains(endTag) &&
+                             firstLine.StartsWith("<i>-", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>-" (4 chars)
+                        var content = firstLine.Substring(4, firstLine.Length - 4 - endTag.Length);
+                        text = "- " + beginTag + content + endTag + Environment.NewLine + secondLine;
+                    }
+                }
+            }
+
             // <i>Foo</i>
             // <i>Bar</i>
             if (italicBeginTagCount == 2 && italicEndTagCount == 2 && noOfLines == 2)
@@ -926,28 +1018,28 @@ namespace Nikse.SubtitleEdit.Core.Common
                     var firstLine = text.Substring(0, index).Trim();
                     var secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
 
-                    if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
-                    {
-                        text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;
-                        text = text.Replace("<i>-  ", "<i>- ");
-                        index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
-                        firstLine = text.Substring(0, index).Trim();
-                        secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
-                    }
-                    if (secondLine.Length > 10 && secondLine.StartsWith("- <i>", StringComparison.Ordinal) && secondLine.EndsWith(endTag, StringComparison.Ordinal))
-                    {
-                        text = firstLine + Environment.NewLine + "<i>- " + secondLine.Remove(0, 5);
-                        text = text.Replace("<i>-  ", "<i>- ");
-                        index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
-                        firstLine = text.Substring(0, index).Trim();
-                        secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
-                    }
+                    //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    //{
+                    //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;
+                    //    text = text.Replace("<i>-  ", "<i>- ");
+                    //    index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                    //    firstLine = text.Substring(0, index).Trim();
+                    //    secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+                    //}
+                    //if (secondLine.Length > 10 && secondLine.StartsWith("- <i>", StringComparison.Ordinal) && secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    //{
+                    //    text = firstLine + Environment.NewLine + "<i>- " + secondLine.Remove(0, 5);
+                    //    text = text.Replace("<i>-  ", "<i>- ");
+                    //    index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                    //    firstLine = text.Substring(0, index).Trim();
+                    //    secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+                    //}
 
-                    if (Utilities.StartsAndEndsWithTag(firstLine, beginTag, endTag) && Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
-                    {
-                        text = text.Replace(beginTag, string.Empty).Replace(endTag, string.Empty).Trim();
-                        text = beginTag + text + endTag;
-                    }
+                    //if (Utilities.StartsAndEndsWithTag(firstLine, beginTag, endTag) && Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
+                    //{
+                    //    text = text.Replace(beginTag, string.Empty).Replace(endTag, string.Empty).Trim();
+                    //    text = beginTag + text + endTag;
+                    //}
                 }
 
                 //FALCONE:<i> I didn't think</i><br /><i>it was going to be you,</i>

@@ -1174,8 +1174,8 @@ namespace Nikse.SubtitleEdit.Core.Forms
             if (input != text)
             {
                 // insert spaces before "-"
-                text = text.Replace(Environment.NewLine + "- <i>", Environment.NewLine + "<i>- ");
-                text = text.Replace(Environment.NewLine + "-<i>", Environment.NewLine + "<i>- ");
+                //text = text.Replace(Environment.NewLine + "- <i>", Environment.NewLine + "<i>- ");
+                //text = text.Replace(Environment.NewLine + "-<i>", Environment.NewLine + "<i>- ");
                 if (text.Length > 2 && text[0] == '-' && text[1] != ' ' && text[1] != '-')
                 {
                     text = text.Insert(1, " ");
