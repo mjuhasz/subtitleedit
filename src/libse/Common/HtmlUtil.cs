@@ -1005,6 +1005,63 @@ namespace Nikse.SubtitleEdit.Core.Common
                         var content = firstLine.Substring(4, firstLine.Length - 4 - endTag.Length);
                         text = "- " + beginTag + content + endTag + Environment.NewLine + secondLine;
                     }
+                    // Case 4: Dash outside italic, italic spans both lines
+                    // - <i>Line one
+                    // - Line two</i>
+                    // becomes:
+                    // - <i>Line one</i>
+                    // - <i>Line two</i>
+                    else if (firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "- <i>" (5 chars) from firstLine
+                        var firstLineContent = firstLine.Substring(5);
+                        // Skip "- " (2 chars) and remove "</i>" from secondLine
+                        var secondLineContent = secondLine.Substring(2, secondLine.Length - 2 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 4b: Dash outside italic (no space after <i>), italic spans both lines
+                    // - <i>Line one
+                    // - Line two</i>
+                    else if (firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i> ", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // This case is actually covered by Case 4 above since "- <i>" matches "- <i>X" too
+                        // Keeping for clarity but this branch won't be reached
+                        var firstLineContent = firstLine.Substring(5);
+                        var secondLineContent = secondLine.Substring(2, secondLine.Length - 2 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 5: Dash outside italic without space after dash
+                    // -<i>Line one
+                    // -Line two</i>
+                    else if (firstLine.StartsWith("-<i>", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("-", StringComparison.Ordinal) &&
+                             !secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "-<i>" (4 chars) from firstLine
+                        var firstLineContent = firstLine.Substring(4);
+                        // Skip "-" (1 char) and remove "</i>" from secondLine
+                        var secondLineContent = secondLine.Substring(1, secondLine.Length - 1 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
                 }
             }
 

@@ -76,5 +76,29 @@ namespace Tests.Core
             Assert.AreEqual("<i>foobar?</i>" + Environment.NewLine + "<i>foobar?</i>", HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_DashOutsideItalicSpanningLines()
+        {
+            // - <i>Line one
+            // - Line two</i>
+            // should become:
+            // - <i>Line one</i>
+            // - <i>Line two</i>
+            string s = "- <i>Excuse me?" + Environment.NewLine + "- Why?</i>";
+            Assert.AreEqual("- <i>Excuse me?</i>" + Environment.NewLine + "- <i>Why?</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_DashOutsideItalicSpanningLinesWithPreTags()
+        {
+            // {\an8}- <i>Line one
+            // - Line two</i>
+            // should become:
+            // {\an8}- <i>Line one</i>
+            // - <i>Line two</i>
+            string s = "{\\an8}- <i>Excuse me?" + Environment.NewLine + "- Why?</i>";
+            Assert.AreEqual("{\\an8}- <i>Excuse me?</i>" + Environment.NewLine + "- <i>Why?</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
