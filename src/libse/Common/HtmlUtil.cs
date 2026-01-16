@@ -1110,11 +1110,25 @@ namespace Nikse.SubtitleEdit.Core.Common
                     //    secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
                     //}
 
-                    //if (Utilities.StartsAndEndsWithTag(firstLine, beginTag, endTag) && Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
-                    //{
-                    //    text = text.Replace(beginTag, string.Empty).Replace(endTag, string.Empty).Trim();
-                    //    text = beginTag + text + endTag;
-                    //}
+                    // Merge per-line italics into spanning italics (non-dialog only)
+                    // <i>Foo</i>
+                    // <i>Bar</i>
+                    // becomes:
+                    // <i>Foo
+                    // Bar</i>
+                    if (Utilities.StartsAndEndsWithTag(firstLine, beginTag, endTag) &&
+                        Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
+                    {
+                        // Only merge if neither line starts with a dialog dash
+                        var firstLineClean = RemoveHtmlTags(firstLine);
+                        var secondLineClean = RemoveHtmlTags(secondLine);
+                        if (!firstLineClean.StartsWith("-", StringComparison.Ordinal) &&
+                            !secondLineClean.StartsWith("-", StringComparison.Ordinal))
+                        {
+                            text = text.Replace(beginTag, string.Empty).Replace(endTag, string.Empty).Trim();
+                            text = beginTag + text + endTag;
+                        }
+                    }
                 }
 
                 //FALCONE:<i> I didn't think</i><br /><i>it was going to be you,</i>

@@ -112,5 +112,29 @@ namespace Tests.Core
             Assert.AreEqual("- [woman 1] <i>One herbal medicine, dear.</i>" + Environment.NewLine + "- [woman 2] <i>Yes, ma'am.</i>", HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_MergePerLineItalics()
+        {
+            // Non-dialog per-line italics should be merged into single spanning tags
+            // <i>First line</i>
+            // <i>Second line</i>
+            // should become:
+            // <i>First line
+            // Second line</i>
+            string s = "<i>First line</i>" + Environment.NewLine + "<i>Second line</i>";
+            Assert.AreEqual("<i>First line" + Environment.NewLine + "Second line</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_KeepDialogPerLineItalics()
+        {
+            // Dialog lines should stay as per-line italics (not merged)
+            // - <i>First line</i>
+            // - <i>Second line</i>
+            // should stay unchanged
+            string s = "- <i>First line</i>" + Environment.NewLine + "- <i>Second line</i>";
+            Assert.AreEqual("- <i>First line</i>" + Environment.NewLine + "- <i>Second line</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
