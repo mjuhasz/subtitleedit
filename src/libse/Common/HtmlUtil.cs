@@ -1075,6 +1075,24 @@ namespace Nikse.SubtitleEdit.Core.Common
                     var firstLine = text.Substring(0, index).Trim();
                     var secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
 
+                    // Case: Italic spans lines with dash embedded in closing tag
+                    // - [text1] <i>Content1.
+                    // -</i> [text2] <i>Content2.</i>
+                    // becomes:
+                    // - [text1] <i>Content1.</i>
+                    // - [text2] <i>Content2.</i>
+                    if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        firstLine.Contains(beginTag) &&
+                        !firstLine.Contains(endTag) &&
+                        secondLine.StartsWith("-</i>", StringComparison.Ordinal))
+                    {
+                        // Add closing tag to first line
+                        firstLine = firstLine + endTag;
+                        // Remove "-</i>" from second line and replace with "- "
+                        secondLine = "- " + secondLine.Substring(5).TrimStart();
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
                     //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
                     //{
                     //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;

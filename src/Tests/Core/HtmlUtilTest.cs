@@ -100,5 +100,17 @@ namespace Tests.Core
             Assert.AreEqual("{\\an8}- <i>Excuse me?</i>" + Environment.NewLine + "- <i>Why?</i>", HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_DashEmbeddedInClosingItalic()
+        {
+            // - [woman 1] <i>One herbal medicine, dear.
+            // -</i> [woman 2] <i>Yes, ma'am.</i>
+            // should become:
+            // - [woman 1] <i>One herbal medicine, dear.</i>
+            // - [woman 2] <i>Yes, ma'am.</i>
+            string s = "- [woman 1] <i>One herbal medicine, dear." + Environment.NewLine + "-</i> [woman 2] <i>Yes, ma'am.</i>";
+            Assert.AreEqual("- [woman 1] <i>One herbal medicine, dear.</i>" + Environment.NewLine + "- [woman 2] <i>Yes, ma'am.</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
