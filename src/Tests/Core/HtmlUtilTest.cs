@@ -113,6 +113,18 @@ namespace Tests.Core
         }
 
         [TestMethod]
+        public void FixInvalidItalicTags_SpeakerBeforeItalicSpanningLines()
+        {
+            // - [speaker] <i>Content one
+            // - Content two</i>
+            // should become:
+            // - [speaker] <i>Content one</i>
+            // - <i>Content two</i>
+            string s = "- [John] <i>Mm-hmm." + Environment.NewLine + "- ...how difficult is it to keep your life</i>";
+            Assert.AreEqual("- [John] <i>Mm-hmm.</i>" + Environment.NewLine + "- <i>...how difficult is it to keep your life</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
         public void FixInvalidItalicTags_MergePerLineItalics()
         {
             // Non-dialog per-line italics should be merged into single spanning tags

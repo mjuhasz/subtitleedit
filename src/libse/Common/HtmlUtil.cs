@@ -1062,6 +1062,25 @@ namespace Nikse.SubtitleEdit.Core.Common
                                Environment.NewLine +
                                "- " + beginTag + secondLineContent + endTag;
                     }
+                    // Case 4c: Italic spans both dialog lines, but first line has content before <i>
+                    // - [speaker] <i>Content one
+                    // - Content two</i>
+                    // becomes:
+                    // - [speaker] <i>Content one</i>
+                    // - <i>Content two</i>
+                    else if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             firstLine.Contains(beginTag) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Add closing tag to first line, add opening tag after dash on second line
+                        text = firstLine + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLine.Substring(2);
+                    }
                 }
             }
 
