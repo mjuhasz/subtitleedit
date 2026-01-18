@@ -148,5 +148,20 @@ namespace Tests.Core
             Assert.AreEqual("- <i>First line</i>" + Environment.NewLine + "- <i>Second line</i>", HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ClosingTagAfterDashSecondLineNotItalic()
+        {
+            // - <i>Line one
+            // - </i> Line two (not italic)
+            // should become:
+            // - <i>Line one</i>
+            // - Line two
+            string s = "- <i>I have you under \"probably wants money.\"" + Environment.NewLine +
+                       "- </i> I haven't asked you for money in years.";
+            Assert.AreEqual("- <i>I have you under \"probably wants money.\"</i>" + Environment.NewLine +
+                            "- I haven't asked you for money in years.",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }

@@ -1081,6 +1081,27 @@ namespace Nikse.SubtitleEdit.Core.Common
                                Environment.NewLine +
                                "- " + beginTag + secondLine.Substring(2);
                     }
+                    // Case 4d: Closing tag at start of second line, second line not italic
+                    // - <i>Line one content
+                    // - </i> Line two content (not italic)
+                    // becomes:
+                    // - <i>Line one content</i>
+                    // - Line two content
+                    else if (firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                              secondLine.StartsWith("- </i> ", StringComparison.Ordinal)))
+                    {
+                        // Add closing tag to end of first line
+                        var newFirstLine = firstLine + endTag;
+
+                        // Remove "- </i>" or "- </i> " from second line
+                        var newSecondLine = secondLine.StartsWith("- </i> ", StringComparison.Ordinal)
+                            ? "- " + secondLine.Substring(7).TrimStart()
+                            : "- " + secondLine.Substring(6).TrimStart();
+
+                        text = newFirstLine + Environment.NewLine + newSecondLine;
+                    }
                 }
             }
 
