@@ -1299,6 +1299,32 @@ namespace Nikse.SubtitleEdit.Core.Common
                         text = secondLine;
                     }
 
+                    // Case: First line has only dash italicized with content after
+                    // <i>- </i> Content1
+                    // <i>- Content2</i>
+                    // becomes:
+                    // - Content1
+                    // - <i>Content2</i>
+                    if ((firstLine.StartsWith("<i>- </i> ", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i> ", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i>", StringComparison.Ordinal)) &&
+                        !firstLine.Substring(firstLine.IndexOf("</i>", StringComparison.Ordinal) + 4).Trim().StartsWith("<i>", StringComparison.Ordinal) &&
+                        secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Remove italic tags from first line, keep dash and content
+                        var closeIdx = firstLine.IndexOf("</i>", StringComparison.Ordinal);
+                        var contentAfter = firstLine.Substring(closeIdx + 4).TrimStart();
+                        firstLine = "- " + contentAfter;
+
+                        // Second line: move dash outside italic
+                        var content = secondLine.Substring(5, secondLine.Length - 5 - endTag.Length);
+                        secondLine = "- " + beginTag + content + endTag;
+
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
                     //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
                     //{
                     //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;

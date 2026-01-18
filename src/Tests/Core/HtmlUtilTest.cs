@@ -289,5 +289,20 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicizedDashWithContentAfter()
+        {
+            // <i>- </i> Content1
+            // <i>- Content2</i>
+            // becomes:
+            // - Content1
+            // - <i>Content2</i>
+            string s = "<i>- </i> Szia, anyu!" + Environment.NewLine +
+                       "<i>- Szia, kincsem! Bár már itt lennél!</i>";
+            Assert.AreEqual("- Szia, anyu!" + Environment.NewLine +
+                            "- <i>Szia, kincsem! Bár már itt lennél!</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
