@@ -1251,6 +1251,30 @@ namespace Nikse.SubtitleEdit.Core.Common
                         text = firstLine + Environment.NewLine + secondLine;
                     }
 
+                    // Case: First line is only an italicized dash with no content
+                    // <i>-</i>
+                    // <i>- Content</i>
+                    // becomes:
+                    // - <i>Content</i>
+                    if ((firstLine == "<i>-</i>" || firstLine == "<i>- </i>") &&
+                        secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Remove first line, move dash outside italic on second line
+                        var content = secondLine.Substring(5, secondLine.Length - 5 - endTag.Length);
+                        text = "- " + beginTag + content + endTag;
+                    }
+                    // Case: First line is only an italicized dash, second line already has dash outside
+                    // <i>-</i>
+                    // - <i>Content</i>
+                    // becomes:
+                    // - <i>Content</i>
+                    else if ((firstLine == "<i>-</i>" || firstLine == "<i>- </i>") &&
+                             secondLine.StartsWith("- <i>", StringComparison.Ordinal))
+                    {
+                        text = secondLine;
+                    }
+
                     //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
                     //{
                     //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;

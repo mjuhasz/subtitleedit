@@ -246,5 +246,18 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_EmptyItalicizedDashLine_Removed()
+        {
+            // <i>-</i>
+            // <i>- Content</i>
+            // becomes:
+            // - <i>Content</i>
+            string s = "<i>-</i>" + Environment.NewLine +
+                       "<i>- ♪ Sing joy to the world ♪</i>";
+            Assert.AreEqual("- <i>♪ Sing joy to the world ♪</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
