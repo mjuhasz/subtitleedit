@@ -1309,6 +1309,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                          firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) ||
                          firstLine.StartsWith("<i>-</i> ", StringComparison.Ordinal) ||
                          firstLine.StartsWith("<i>-</i>", StringComparison.Ordinal)) &&
+                        firstLine.Substring(firstLine.IndexOf("</i>", StringComparison.Ordinal) + 4).Trim().Length > 0 &&
                         !firstLine.Substring(firstLine.IndexOf("</i>", StringComparison.Ordinal) + 4).Trim().StartsWith("<i>", StringComparison.Ordinal) &&
                         secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
                         secondLine.EndsWith(endTag, StringComparison.Ordinal))
