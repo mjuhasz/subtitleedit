@@ -216,5 +216,35 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicOnlyAroundDash_SecondLine()
+        {
+            // - Text1
+            // <i>-</i> Text2
+            // becomes:
+            // - Text1
+            // - Text2
+            string s = "- Yes, he is." + Environment.NewLine +
+                       "<i>-</i> So where is he?";
+            Assert.AreEqual("- Yes, he is." + Environment.NewLine +
+                            "- So where is he?",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicSpanningWithDashCloseSecondLine()
+        {
+            // <i>- Content1
+            // -</i> Content2
+            // becomes:
+            // - <i>Content1</i>
+            // - Content2
+            string s = "<i>- ♪ Seems like everyone but me is in love ♪" + Environment.NewLine +
+                       "-</i> Looking. Looking.";
+            Assert.AreEqual("- <i>♪ Seems like everyone but me is in love ♪</i>" + Environment.NewLine +
+                            "- Looking. Looking.",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
