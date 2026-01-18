@@ -274,5 +274,20 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ContentBeforeItalicWithClosingAfterSecondDash()
+        {
+            // - Text <i>Content one
+            // - </i> Content two
+            // becomes:
+            // - Text <i>Content one</i>
+            // - Content two
+            string s = "- Az <i>Emmett megmentése?" + Environment.NewLine +
+                       "- </i> Igen, azt!";
+            Assert.AreEqual("- Az <i>Emmett megmentése?</i>" + Environment.NewLine +
+                            "- Igen, azt!",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }

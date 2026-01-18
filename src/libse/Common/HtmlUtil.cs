@@ -1151,6 +1151,30 @@ namespace Nikse.SubtitleEdit.Core.Common
 
                         text = newFirstLine + Environment.NewLine + newSecondLine;
                     }
+                    // Case 4e: Closing tag at start of second line, first line has content before <i>
+                    // - Text <i>Content one
+                    // - </i> Content two (not italic)
+                    // becomes:
+                    // - Text <i>Content one</i>
+                    // - Content two
+                    else if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             firstLine.Contains(beginTag) &&
+                             !firstLine.Contains(endTag) &&
+                             (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                              secondLine.StartsWith("- </i> ", StringComparison.Ordinal)) &&
+                             !secondLine.Contains(beginTag))
+                    {
+                        // Add closing tag to end of first line
+                        var newFirstLine = firstLine + endTag;
+
+                        // Remove "- </i>" or "- </i> " from second line
+                        var newSecondLine = secondLine.StartsWith("- </i> ", StringComparison.Ordinal)
+                            ? "- " + secondLine.Substring(7)
+                            : "- " + secondLine.Substring(6);
+
+                        text = newFirstLine + Environment.NewLine + newSecondLine;
+                    }
                     // Case: Italic spans lines, dash inside italic on line 1, closes after dash on line 2
                     // <i>- Content1
                     // -</i> Content2
