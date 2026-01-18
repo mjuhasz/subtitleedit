@@ -1326,6 +1326,38 @@ namespace Nikse.SubtitleEdit.Core.Common
                         text = firstLine + Environment.NewLine + secondLine;
                     }
 
+                    // Case: First line has italicized dash at start, content, then unclosed italic
+                    // Second line closes the italic after the dash
+                    // <i>- </i>[content1] <i>content2
+                    // - </i>[content3]
+                    // becomes:
+                    // - [content1] <i>content2</i>
+                    // - [content3]
+                    if ((firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i>", StringComparison.Ordinal)) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 1 &&
+                        (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                         secondLine.StartsWith("- </i> ", StringComparison.Ordinal)))
+                    {
+                        // First line: remove "<i>- </i>" or "<i>-</i>", add "- " at start, close the unclosed italic at end
+                        var closeIdx = firstLine.IndexOf("</i>", StringComparison.Ordinal);
+                        var contentAfter = firstLine.Substring(closeIdx + 4).TrimStart();
+                        firstLine = "- " + contentAfter + endTag;
+
+                        // Second line: remove "- </i>" or "- </i> ", keep "- " + rest
+                        if (secondLine.StartsWith("- </i> ", StringComparison.Ordinal))
+                        {
+                            secondLine = "- " + secondLine.Substring(7); // Skip "- </i> " (7 chars)
+                        }
+                        else
+                        {
+                            secondLine = "- " + secondLine.Substring(6); // Skip "- </i>" (6 chars)
+                        }
+
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
                     //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
                     //{
                     //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;

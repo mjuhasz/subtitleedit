@@ -304,5 +304,20 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicizedDashWithUnclosedItalicSpanning()
+        {
+            // <i>- </i>[content1] <i>content2
+            // - </i>[content3]
+            // becomes:
+            // - [content1] <i>content2</i>
+            // - [content3]
+            string s = "<i>- </i>[woman singing] <i>♪ Joy to the world ♪" + Environment.NewLine +
+                       "- </i>[gasping]";
+            Assert.AreEqual("- [woman singing] <i>♪ Joy to the world ♪</i>" + Environment.NewLine +
+                            "- [gasping]",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
