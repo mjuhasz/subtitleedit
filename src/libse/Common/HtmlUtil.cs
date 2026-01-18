@@ -920,7 +920,17 @@ namespace Nikse.SubtitleEdit.Core.Common
             // Single line: <i>- Text</i> -> - <i>Text</i>
             if (italicBeginTagCount == 1 && italicEndTagCount == 1 && noOfLines == 1)
             {
-                if (text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                // Case: Only the dash is in italics, remove the tags entirely
+                // <i>-</i> Text -> - Text
+                if (text.StartsWith("<i>-</i> ", StringComparison.Ordinal))
+                {
+                    text = "- " + text.Substring(9); // Skip "<i>-</i> " (9 chars)
+                }
+                else if (text.StartsWith("<i>- </i>", StringComparison.Ordinal))
+                {
+                    text = "- " + text.Substring(9); // Skip "<i>- </i>" (9 chars)
+                }
+                else if (text.StartsWith("<i>- ", StringComparison.Ordinal) &&
                     text.EndsWith(endTag, StringComparison.Ordinal))
                 {
                     // Skip "<i>- " (5 chars) to get content
@@ -953,6 +963,27 @@ namespace Nikse.SubtitleEdit.Core.Common
                     var firstLine = text.Substring(0, newLineIdx);
                     var secondLine = text.Substring(newLineIdx + Environment.NewLine.Length);
 
+                    // Case: Only the dash is in italics on first line, remove the tags
+                    // <i>-</i> Text1
+                    // Text2
+                    // becomes:
+                    // - Text1
+                    // Text2
+                    if (firstLine.StartsWith("<i>-</i> ", StringComparison.Ordinal) &&
+                        !secondLine.Contains(beginTag) && !secondLine.Contains(endTag))
+                    {
+                        firstLine = "- " + firstLine.Substring(9); // Skip "<i>-</i> " (9 chars)
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                    // Case: Only the dash with space is in italics on first line
+                    // <i>- </i>Text1
+                    // Text2
+                    else if (firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) && !secondLine.Contains(endTag))
+                    {
+                        firstLine = "- " + firstLine.Substring(9); // Skip "<i>- </i>" (9 chars)
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
                     // Case 1: Both lines inside single italic block
                     // <i>- Line one
                     // - Line two</i>
@@ -1130,6 +1161,34 @@ namespace Nikse.SubtitleEdit.Core.Common
                         firstLine = firstLine + endTag;
                         // Remove "-</i>" from second line and replace with "- "
                         secondLine = "- " + secondLine.Substring(5).TrimStart();
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
+                    // Case: Italic spans lines, first line has dash inside italic, second line closes after dash
+                    // <i>- Content1
+                    // - </i> Content2, <i>Content3</i>
+                    // becomes:
+                    // - <i>Content1</i>
+                    // - Content2, <i>Content3</i>
+                    if (firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 1 &&
+                        !firstLine.Contains(endTag) &&
+                        (secondLine.StartsWith("- </i> ", StringComparison.Ordinal) ||
+                         secondLine.StartsWith("- </i>", StringComparison.Ordinal)))
+                    {
+                        // First line: skip "<i>- " (5 chars), wrap content in italics with dash outside
+                        var firstLineContent = firstLine.Substring(5);
+                        firstLine = "- " + beginTag + firstLineContent + endTag;
+
+                        // Second line: remove "- </i> " or "- </i>", keep "- " + rest
+                        if (secondLine.StartsWith("- </i> ", StringComparison.Ordinal))
+                        {
+                            secondLine = "- " + secondLine.Substring(7); // Skip "- </i> " (7 chars)
+                        }
+                        else
+                        {
+                            secondLine = "- " + secondLine.Substring(6); // Skip "- </i>" (6 chars)
+                        }
                         text = firstLine + Environment.NewLine + secondLine;
                     }
 

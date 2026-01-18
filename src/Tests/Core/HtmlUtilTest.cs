@@ -178,5 +178,43 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicOnlyAroundDash_SingleLine()
+        {
+            // <i>-</i> Text -> - Text
+            string s = "<i>-</i> Is that Carl?";
+            Assert.AreEqual("- Is that Carl?", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicOnlyAroundDash_TwoLines()
+        {
+            // <i>-</i> Text1
+            // - Text2
+            // becomes:
+            // - Text1
+            // - Text2
+            string s = "<i>-</i> Is that Carl?" + Environment.NewLine +
+                       "- No. He's with TaskRabbit. Carl died.";
+            Assert.AreEqual("- Is that Carl?" + Environment.NewLine +
+                            "- No. He's with TaskRabbit. Carl died.",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicSpanningWithClosingAfterSecondDash()
+        {
+            // <i>- Content1
+            // - </i> Content2, <i>Content3</i>
+            // becomes:
+            // - <i>Content1</i>
+            // - Content2, <i>Content3</i>
+            string s = "<i>- Saving Emmett?" + Environment.NewLine +
+                       "- </i> Yes, <i>Saving Emmett!</i>";
+            Assert.AreEqual("- <i>Saving Emmett?</i>" + Environment.NewLine +
+                            "- Yes, <i>Saving Emmett!</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
