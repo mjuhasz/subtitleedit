@@ -1133,6 +1133,28 @@ namespace Nikse.SubtitleEdit.Core.Common
                         text = firstLine + Environment.NewLine + secondLine;
                     }
 
+                    // Case: Dialog with partial italic on line 1 (has unclosed <i> at end)
+                    // and dash outside italic on line 2
+                    // - <i>text1</i>… <i> text2
+                    // - text3</i>
+                    // becomes:
+                    // - <i>text1</i>… <i> text2</i>
+                    // - <i>text3</i>
+                    if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 1 &&
+                        !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                        secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        !secondLine.Contains(beginTag) &&
+                        secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Add closing tag to end of first line
+                        firstLine = firstLine + endTag;
+                        // Add opening tag after dash on second line
+                        secondLine = "- " + beginTag + secondLine.Substring(2);
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
                     //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
                     //{
                     //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;

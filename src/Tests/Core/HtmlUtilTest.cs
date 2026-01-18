@@ -163,5 +163,20 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_DialogDashOutsideItalicSpanningLines()
+        {
+            // - <i>text1</i>… <i> text2
+            // - text3</i>
+            // should become:
+            // - <i>text1</i>… <i> text2</i>
+            // - <i>text3</i>
+            string s = "- <i>♪ Santa, that's my only wish this year</i>… <i> ♪" + Environment.NewLine +
+                       "- ♪ This year ♪</i>";
+            Assert.AreEqual("- <i>♪ Santa, that's my only wish this year</i>… <i> ♪</i>" + Environment.NewLine +
+                            "- <i>♪ This year ♪</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
