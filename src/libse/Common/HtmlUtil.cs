@@ -1366,6 +1366,43 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
             }
 
+            // Case: Dialog with partial italic on line 1 (has 2 open, 1 close - unclosed at end)
+            // and closing tag after dash on line 2 (has 1 open, 2 close)
+            // - <i>text1</i>… <i> text2
+            // - </i>[speaker] <i>text3</i>
+            // becomes:
+            // - <i>text1</i>… <i> text2</i>
+            // - [speaker] <i>text3</i>
+            if (italicBeginTagCount == 3 && italicEndTagCount == 3 && noOfLines == 2)
+            {
+                var index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                if (index > 0)
+                {
+                    var firstLine = text.Substring(0, index).Trim();
+                    var secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+
+                    if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 1 &&
+                        !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                        (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                         secondLine.StartsWith("- </i> ", StringComparison.Ordinal)) &&
+                        Utilities.CountTagInText(secondLine, beginTag) == 1 &&
+                        Utilities.CountTagInText(secondLine, endTag) == 2)
+                    {
+                        // Add closing tag to end of first line
+                        firstLine = firstLine + endTag;
+
+                        // Remove "- </i>" or "- </i> " from second line
+                        secondLine = secondLine.StartsWith("- </i> ", StringComparison.Ordinal)
+                            ? "- " + secondLine.Substring(7)
+                            : "- " + secondLine.Substring(6);
+
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                }
+            }
+
             if (noOfLines == 2 && italicBeginTagCount == 0 && italicEndTagCount == 4)
             {
                 var lines = text.SplitToLines();

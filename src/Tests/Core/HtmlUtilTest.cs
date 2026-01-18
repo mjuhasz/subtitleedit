@@ -259,5 +259,20 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_UnclosedItalicWithClosingAfterSecondDash()
+        {
+            // - <i>text1</i>… <i> text2
+            // - </i>[speaker] <i>text3</i>
+            // becomes:
+            // - <i>text1</i>… <i> text2</i>
+            // - [speaker] <i>text3</i>
+            string s = "- <i>♪ Santa, that's my only wish this year</i>… <i> ♪" + Environment.NewLine +
+                       "- </i>[Peter] <i>♪ This year ♪</i>";
+            Assert.AreEqual("- <i>♪ Santa, that's my only wish this year</i>… <i> ♪</i>" + Environment.NewLine +
+                            "- [Peter] <i>♪ This year ♪</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
