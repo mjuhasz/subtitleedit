@@ -2188,11 +2188,22 @@ namespace Nikse.SubtitleEdit.Core.Common
             text = text.Replace(Environment.NewLine + "- ... ", Environment.NewLine + "- ...");
             text = text.Replace(Environment.NewLine + "<i>- ... ", Environment.NewLine + "<i>- ...");
             text = text.Replace(Environment.NewLine + "- ... ", Environment.NewLine + "- ...");
+            text = text.Replace(" …" + Environment.NewLine, "…" + Environment.NewLine);
+            text = text.Replace(Environment.NewLine + "… ", Environment.NewLine + "…");
+            text = text.Replace(Environment.NewLine + "<i>… ", Environment.NewLine + "<i>…");
+            text = text.Replace(Environment.NewLine + "- … ", Environment.NewLine + "- …");
+            text = text.Replace(Environment.NewLine + "<i>- … ", Environment.NewLine + "<i>- …");
+
 
             if (text.StartsWith("... ", StringComparison.Ordinal))
             {
                 text = text.Remove(3, 1);
             }
+            if (text.StartsWith("… ", StringComparison.Ordinal))
+            {
+                text = text.Remove(1, 1);
+            }
+
 
             while (text.EndsWith(" ...", StringComparison.Ordinal))
             {
@@ -2202,6 +2213,16 @@ namespace Nikse.SubtitleEdit.Core.Common
             while (text.EndsWith(" ...</i>", StringComparison.Ordinal))
             {
                 text = text.Remove(text.Length - 8, 1);
+            }
+
+            while (text.EndsWith(" …", StringComparison.Ordinal))
+            {
+                text = text.Remove(text.Length - 2, 1);
+            }
+
+            while (text.EndsWith(" …</i>", StringComparison.Ordinal))
+            {
+                text = text.Remove(text.Length - 6, 1);
             }
 
             while (text.EndsWith(" .</i>", StringComparison.Ordinal))
@@ -2222,6 +2243,16 @@ namespace Nikse.SubtitleEdit.Core.Common
             if (text.StartsWith("<i>... ", StringComparison.Ordinal))
             {
                 text = text.Remove(6, 1);
+            }
+
+            if (text.StartsWith("- … ", StringComparison.Ordinal))
+            {
+                text = text.Remove(3, 1);
+            }
+
+            if (text.StartsWith("<i>… ", StringComparison.Ordinal))
+            {
+                text = text.Remove(4, 1);
             }
 
             if (language != "fr") // special rules for French
@@ -2248,6 +2279,9 @@ namespace Nikse.SubtitleEdit.Core.Common
 
                 text = text.Replace("... ?", "...?");
                 text = text.Replace("... !", "...!");
+                text = text.Replace("… ?", "…?");
+                text = text.Replace("… !", "…!");
+
 
                 text = text.Replace(" :", ":");
                 text = text.Replace(" :", ":");
@@ -2257,6 +2291,11 @@ namespace Nikse.SubtitleEdit.Core.Common
             {
                 text = text.Replace(" ... ", "... ");
             }
+            if (!text.Contains("- …"))
+            {
+                text = text.Replace(" … ", "… ");
+            }
+
 
             while (text.Contains(" ,"))
             {
@@ -2368,6 +2407,16 @@ namespace Nikse.SubtitleEdit.Core.Common
             while (text.Contains("¡ "))
             {
                 text = text.Replace("¡ ", "¡");
+            }
+
+            // SDH square brackets - remove spaces after [ and before ]
+            while (text.Contains("[ "))
+            {
+                text = text.Replace("[ ", "[");
+            }
+            while (text.Contains(" ]"))
+            {
+                text = text.Replace(" ]", "]");
             }
 
             // Italic

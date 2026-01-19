@@ -42,7 +42,7 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
 
                 var isLastLineClosed = last == null || last.Text.Length > 0 && ".!?:)]".Contains(last.Text[last.Text.Length - 1]);
                 var trimmedStart = p.Text.TrimStart('-', ' ');
-                if (last != null && last.Text.EndsWith("...", StringComparison.Ordinal) && trimmedStart.Length > 0 && char.IsLower(trimmedStart[0]))
+                if (last != null && (last.Text.EndsWith("...", StringComparison.Ordinal) || last.Text.EndsWith("…", StringComparison.Ordinal)) && trimmedStart.Length > 0 && char.IsLower(trimmedStart[0]))
                 {
                     isLastLineClosed = false;
                 }

@@ -71,6 +71,10 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
             {
                 text = text.TrimStart('.').TrimStart();
             }
+            if (text.StartsWith("…", StringComparison.Ordinal))
+            {
+                text = text.TrimStart('…').TrimStart();
+            }
 
             // "...foobar" / "... foobar" / ". .. foobar"
             if (text.StartsWith("\"") && (text.StartsWith("\"..") || text.StartsWith("\". .") || text.StartsWith("\" ..") || text.StartsWith("\" . .")))
@@ -483,6 +487,11 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
             {
                 line = line.Remove(3, 1);
             }
+            if (line.StartsWith("… ", StringComparison.Ordinal))
+            {
+                line = line.Remove(1, 1);
+            }
+
 
             if (line.Length > 6 && line.LineStartsWithHtmlTag(true)) // <i>... foobar
             {
@@ -492,6 +501,10 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                 if (line.StartsWith("... ", StringComparison.Ordinal))
                 {
                     line = line.Remove(3, 1);
+                }
+                if (line.StartsWith("… ", StringComparison.Ordinal))
+                {
+                    line = line.Remove(1, 1);
                 }
                 line = pre + line;
             }
@@ -506,6 +519,10 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     if (line.StartsWith("... ", StringComparison.Ordinal))
                     {
                         line = line.Remove("... ".Length - 1, 1);
+                    }
+                    if (line.StartsWith("… ", StringComparison.Ordinal))
+                    {
+                        line = line.Remove(1, 1);
                     }
                     line = fontTag + line;
                 }

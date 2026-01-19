@@ -215,6 +215,10 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                         var isAfterAssTag = newText.Contains("{\\") && start > 0 && newText[start - 1] == '}';
                         var isAfterHyphen = start > 0 && newText[start - 1] == '-';
                         var isAfterEllipsis = start >= 3 && newText.Substring(start - 3, 3) == "...";
+                        if (!isAfterEllipsis && start >= 1 && newText[start - 1] == '…')
+                        {
+                            isAfterEllipsis = true;
+                        }
                         if (!isAfterAssTag && !isAfterEllipsis && !isAfterHyphen && start > 0 && !(Environment.NewLine + @" >[(♪♫¿").Contains(p.Text[start - 1]))
                         {
                             if (indexOfFontTag < 0 || start > newText.IndexOf('>', indexOfFontTag)) // font tags can contain "
@@ -273,7 +277,7 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
 
                 //fix missing spaces in "Hey...move it!" to "Hey... move it!"
                 var index = p.Text.IndexOf("...", StringComparison.Ordinal);
-                if (index > 0 && p.Text.Length > 5)
+                if (index >= 0 && p.Text.Length > 5)
                 {
                     var newText = p.Text;
                     while (index != -1)
@@ -287,6 +291,32 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                             }
                         }
                         index = newText.IndexOf("...", index + 2, StringComparison.Ordinal);
+                    }
+                    if (newText != p.Text && callbacks.AllowFix(p, fixAction))
+                    {
+                        missingSpaces++;
+                        var oldText = p.Text;
+                        p.Text = newText;
+                        callbacks.AddFixToListView(p, fixAction, oldText, p.Text);
+                    }
+                }
+
+                //fix missing spaces in "Hey…move it!" to "Hey… move it!"
+                index = p.Text.IndexOf("…", StringComparison.Ordinal);
+                if (index >= 0 && p.Text.Length > 2)
+                {
+                    var newText = p.Text;
+                    while (index != -1)
+                    {
+                        if (newText.Length > index + 1 && index >= 1)
+                        {
+                            if ((Utilities.AllLettersAndNumbers + "$").Contains(newText[index + 1]) &&
+                                Utilities.AllLettersAndNumbers.Contains(newText[index - 1]))
+                            {
+                                newText = newText.Insert(index + 1, " ");
+                            }
+                        }
+                        index = newText.IndexOf("…", index + 1, StringComparison.Ordinal);
                     }
                     if (newText != p.Text && callbacks.AllowFix(p, fixAction))
                     {
@@ -339,6 +369,33 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                             }
                         }
                         index = newText.IndexOf("</i>", index + 4, StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (newText != p.Text && callbacks.AllowFix(p, fixAction))
+                    {
+                        missingSpaces++;
+                        var oldText = p.Text;
+                        p.Text = newText;
+                        callbacks.AddFixToListView(p, fixAction, oldText, p.Text);
+                    }
+                }
+
+                //fix missing spaces after SDH closing bracket "]" - "[Slim]How" to "[Slim] How"
+                index = p.Text.IndexOf(']');
+                if (index >= 0 && p.Text.Length > 2)
+                {
+                    var newText = p.Text;
+                    while (index != -1 && index < newText.Length - 1)
+                    {
+                        var nextChar = newText[index + 1];
+
+                        // Add space if next char is a letter, digit, or music symbol
+                        if (Utilities.AllLettersAndNumbers.Contains(nextChar) || "♪♫#".Contains(nextChar))
+                        {
+                            newText = newText.Insert(index + 1, " ");
+                            index++; // Account for the inserted space
+                        }
+
+                        index = newText.IndexOf(']', index + 1);
                     }
                     if (newText != p.Text && callbacks.AllowFix(p, fixAction))
                     {
