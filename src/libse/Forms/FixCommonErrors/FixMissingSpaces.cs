@@ -379,6 +379,33 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     }
                 }
 
+                //fix missing spaces after SDH closing bracket "]" - "[Slim]How" to "[Slim] How"
+                index = p.Text.IndexOf(']');
+                if (index >= 0 && p.Text.Length > 2)
+                {
+                    var newText = p.Text;
+                    while (index != -1 && index < newText.Length - 1)
+                    {
+                        var nextChar = newText[index + 1];
+
+                        // Add space if next char is a letter, digit, or music symbol
+                        if (Utilities.AllLettersAndNumbers.Contains(nextChar) || "♪♫#".Contains(nextChar))
+                        {
+                            newText = newText.Insert(index + 1, " ");
+                            index++; // Account for the inserted space
+                        }
+
+                        index = newText.IndexOf(']', index + 1);
+                    }
+                    if (newText != p.Text && callbacks.AllowFix(p, fixAction))
+                    {
+                        missingSpaces++;
+                        var oldText = p.Text;
+                        p.Text = newText;
+                        callbacks.AddFixToListView(p, fixAction, oldText, p.Text);
+                    }
+                }
+
                 if (p.Text.IndexOf('<') >= 0) // fix: You!<font color="#ffff00">Well, bye!</font>
                 {
                     var regexFontStart = new Regex("[!\\.,?]<font[ colrsizeabcdef#0123456789\"=]+>\\p{L}");

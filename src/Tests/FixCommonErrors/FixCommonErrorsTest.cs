@@ -1125,6 +1125,74 @@ namespace Tests.FixCommonErrors
             }
         }
 
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketWithLetter()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Slim]How do we know which grave?");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Slim] How do we know which grave?", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketWithMusicSymbol()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[song continues playing]♪");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[song continues playing] ♪", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketWithItalicTag()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Ghoul]Oh, <i>I'm you, sweetie.</i>");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Ghoul] Oh, <i>I'm you, sweetie.</i>", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketNoChangeWithSpace()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                const string input = "[Narrator] This is a test.";
+                InitializeFixCommonErrorsLine(target, input);
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual(input, _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketNoChangeWithClosingTag()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                const string input = "<i>[whispers]</i>";
+                InitializeFixCommonErrorsLine(target, input);
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual(input, _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketMultiple()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Man]Hello. [Woman]Hi there.");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Man] Hello. [Woman] Hi there.", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
         #endregion Fix missing spaces
 
         #region Fix unneeded spaces
