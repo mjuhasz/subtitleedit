@@ -373,7 +373,7 @@ namespace Tests.Logic
         {
             string s1 = "- <i>It is a telegram?</i>" + Environment.NewLine + "<i>- It is.</i>";
             string s2 = HtmlUtil.FixInvalidItalicTags(s1);
-            Assert.AreEqual(s2, "<i>- It is a telegram?" + Environment.NewLine + "- It is.</i>");
+            Assert.AreEqual(s2, "- <i>It is a telegram?</i>" + Environment.NewLine + "- <i>It is.</i>");
         }
 
         [TestMethod]
@@ -381,7 +381,7 @@ namespace Tests.Logic
         {
             string s1 = "- <i>Text1!</i>" + Environment.NewLine + "- <i>Text2.</i>";
             string s2 = HtmlUtil.FixInvalidItalicTags(s1);
-            Assert.AreEqual(s2, "<i>- Text1!" + Environment.NewLine + "- Text2.</i>");
+            Assert.AreEqual(s2, "- <i>Text1!</i>" + Environment.NewLine + "- <i>Text2.</i>");
         }
 
         [TestMethod]
@@ -714,6 +714,41 @@ namespace Tests.Logic
 
             s = Utilities.RemoveUnneededSpaces("Nou 's avonds?", "nl");
             Assert.AreEqual("Nou 's avonds?", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketSpaceAfterOpening()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[ man 1]", "en");
+            Assert.AreEqual("[man 1]", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketSpaceBeforeClosing()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[man 1 ]", "en");
+            Assert.AreEqual("[man 1]", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketSpacesBothSides()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[ man 1 ]", "en");
+            Assert.AreEqual("[man 1]", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketMultiple()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[man 1 ] A movie." + Environment.NewLine + "[ silently] watching", "en");
+            Assert.AreEqual("[man 1] A movie." + Environment.NewLine + "[silently] watching", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketWithItalic()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[man 1 ] A <i>Man and His Dog,</i>", "en");
+            Assert.AreEqual("[man 1] A <i>Man and His Dog,</i>", s);
         }
 
         [TestMethod]
