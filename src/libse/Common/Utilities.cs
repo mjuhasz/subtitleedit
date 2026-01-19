@@ -2409,6 +2409,16 @@ namespace Nikse.SubtitleEdit.Core.Common
                 text = text.Replace("¡ ", "¡");
             }
 
+            // SDH square brackets - remove spaces after [ and before ]
+            while (text.Contains("[ "))
+            {
+                text = text.Replace("[ ", "[");
+            }
+            while (text.Contains(" ]"))
+            {
+                text = text.Replace(" ]", "]");
+            }
+
             // Italic
             if (text.Contains("<i>", StringComparison.OrdinalIgnoreCase) && text.Contains("</i>", StringComparison.OrdinalIgnoreCase))
             {
