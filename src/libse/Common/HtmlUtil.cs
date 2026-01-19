@@ -916,6 +916,287 @@ namespace Nikse.SubtitleEdit.Core.Common
                 text = text.Remove(firstIndex, endTag.Length).Insert(firstIndex, beginTag);
             }
 
+            // Pull leading dash out of italic block for dialog lines
+            // Single line: <i>- Text</i> -> - <i>Text</i>
+            if (italicBeginTagCount == 1 && italicEndTagCount == 1 && noOfLines == 1)
+            {
+                // Case: Only the dash is in italics, remove the tags entirely
+                // <i>-</i> Text -> - Text
+                if (text.StartsWith("<i>-</i> ", StringComparison.Ordinal))
+                {
+                    text = "- " + text.Substring(9); // Skip "<i>-</i> " (9 chars)
+                }
+                else if (text.StartsWith("<i>- </i>", StringComparison.Ordinal))
+                {
+                    text = "- " + text.Substring(9); // Skip "<i>- </i>" (9 chars)
+                }
+                else if (text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                    text.EndsWith(endTag, StringComparison.Ordinal))
+                {
+                    // Skip "<i>- " (5 chars) to get content
+                    var content = text.Substring(5, text.Length - 5 - endTag.Length);
+                    text = "- " + beginTag + content + endTag;
+                }
+                else if (text.StartsWith("<i>-", StringComparison.Ordinal) &&
+                         !text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                         text.EndsWith(endTag, StringComparison.Ordinal))
+                {
+                    // Handle <i>-Text</i> (no space after dash) -> - <i>Text</i>
+                    // Skip "<i>-" (4 chars) to get content
+                    var content = text.Substring(4, text.Length - 4 - endTag.Length);
+                    text = "- " + beginTag + content + endTag;
+                }
+            }
+
+            // Multi-line:
+            // <i>- Line one
+            // - Line two</i>
+            // becomes:
+            // - <i>Line one</i>
+            // - <i>Line two</i>
+            // Multi-line cases with italicBeginTagCount == 1 && italicEndTagCount == 1
+            if (italicBeginTagCount == 1 && italicEndTagCount == 1 && noOfLines == 2)
+            {
+                var newLineIdx = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                if (newLineIdx > 0)
+                {
+                    var firstLine = text.Substring(0, newLineIdx);
+                    var secondLine = text.Substring(newLineIdx + Environment.NewLine.Length);
+
+                    // Case: Only the dash is in italics on first line, remove the tags
+                    // <i>-</i> Text1
+                    // Text2
+                    // becomes:
+                    // - Text1
+                    // Text2
+                    if (firstLine.StartsWith("<i>-</i> ", StringComparison.Ordinal) &&
+                        !secondLine.Contains(beginTag) && !secondLine.Contains(endTag))
+                    {
+                        firstLine = "- " + firstLine.Substring(9); // Skip "<i>-</i> " (9 chars)
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                    // Case: Only the dash with space is in italics on first line
+                    // <i>- </i>Text1
+                    // Text2
+                    else if (firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) && !secondLine.Contains(endTag))
+                    {
+                        firstLine = "- " + firstLine.Substring(9); // Skip "<i>- </i>" (9 chars)
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                    // Case: Only the dash is in italics on SECOND line, remove the tags
+                    // - Text1
+                    // <i>-</i> Text2
+                    // becomes:
+                    // - Text1
+                    // - Text2
+                    else if (!firstLine.Contains(beginTag) && !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("<i>-</i> ", StringComparison.Ordinal))
+                    {
+                        secondLine = "- " + secondLine.Substring(9); // Skip "<i>-</i> " (9 chars)
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                    else if (!firstLine.Contains(beginTag) && !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("<i>-</i>", StringComparison.Ordinal))
+                    {
+                        secondLine = "- " + secondLine.Substring(8); // Skip "<i>-</i>" (8 chars)
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                    // Case 1: Both lines inside single italic block
+                    // <i>- Line one
+                    // - Line two</i>
+                    if (text.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        text.EndsWith(endTag, StringComparison.Ordinal) &&
+                        secondLine.StartsWith("- ", StringComparison.Ordinal))
+                    {
+                        // Skip "<i>- " (5 chars) from firstLine
+                        var firstLineContent = firstLine.Substring(5);
+                        var secondLineContent = secondLine.Substring(2, secondLine.Length - 2 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 2: Only second line has <i>- text</i>
+                    else if (!firstLine.Contains(beginTag) && !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>- " (5 chars)
+                        var content = secondLine.Substring(5, secondLine.Length - 5 - endTag.Length);
+                        text = firstLine + Environment.NewLine + "- " + beginTag + content + endTag;
+                    }
+                    // Case 2b: Only second line has <i>-text</i> (no space)
+                    else if (!firstLine.Contains(beginTag) && !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("<i>-", StringComparison.Ordinal) &&
+                             !secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>-" (4 chars)
+                        var content = secondLine.Substring(4, secondLine.Length - 4 - endTag.Length);
+                        text = firstLine + Environment.NewLine + "- " + beginTag + content + endTag;
+                    }
+                    // Case 3: Only first line has <i>- text</i>
+                    else if (!secondLine.Contains(beginTag) && !secondLine.Contains(endTag) &&
+                             firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>- " (5 chars)
+                        var content = firstLine.Substring(5, firstLine.Length - 5 - endTag.Length);
+                        text = "- " + beginTag + content + endTag + Environment.NewLine + secondLine;
+                    }
+                    // Case 3b: Only first line has <i>-text</i> (no space)
+                    else if (!secondLine.Contains(beginTag) && !secondLine.Contains(endTag) &&
+                             firstLine.StartsWith("<i>-", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "<i>-" (4 chars)
+                        var content = firstLine.Substring(4, firstLine.Length - 4 - endTag.Length);
+                        text = "- " + beginTag + content + endTag + Environment.NewLine + secondLine;
+                    }
+                    // Case 4: Dash outside italic, italic spans both lines
+                    // - <i>Line one
+                    // - Line two</i>
+                    // becomes:
+                    // - <i>Line one</i>
+                    // - <i>Line two</i>
+                    else if (firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "- <i>" (5 chars) from firstLine
+                        var firstLineContent = firstLine.Substring(5);
+                        // Skip "- " (2 chars) and remove "</i>" from secondLine
+                        var secondLineContent = secondLine.Substring(2, secondLine.Length - 2 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 4b: Dash outside italic (no space after <i>), italic spans both lines
+                    // - <i>Line one
+                    // - Line two</i>
+                    else if (firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i> ", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // This case is actually covered by Case 4 above since "- <i>" matches "- <i>X" too
+                        // Keeping for clarity but this branch won't be reached
+                        var firstLineContent = firstLine.Substring(5);
+                        var secondLineContent = secondLine.Substring(2, secondLine.Length - 2 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 5: Dash outside italic without space after dash
+                    // -<i>Line one
+                    // -Line two</i>
+                    else if (firstLine.StartsWith("-<i>", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("-", StringComparison.Ordinal) &&
+                             !secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Skip "-<i>" (4 chars) from firstLine
+                        var firstLineContent = firstLine.Substring(4);
+                        // Skip "-" (1 char) and remove "</i>" from secondLine
+                        var secondLineContent = secondLine.Substring(1, secondLine.Length - 1 - endTag.Length);
+                        text = "- " + beginTag + firstLineContent + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLineContent + endTag;
+                    }
+                    // Case 4c: Italic spans both dialog lines, but first line has content before <i>
+                    // - [speaker] <i>Content one
+                    // - Content two</i>
+                    // becomes:
+                    // - [speaker] <i>Content one</i>
+                    // - <i>Content two</i>
+                    else if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             firstLine.Contains(beginTag) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag) &&
+                             secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Add closing tag to first line, add opening tag after dash on second line
+                        text = firstLine + endTag +
+                               Environment.NewLine +
+                               "- " + beginTag + secondLine.Substring(2);
+                    }
+                    // Case 4d: Closing tag at start of second line, second line not italic
+                    // - <i>Line one content
+                    // - </i> Line two content (not italic)
+                    // becomes:
+                    // - <i>Line one content</i>
+                    // - Line two content
+                    else if (firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                              secondLine.StartsWith("- </i> ", StringComparison.Ordinal)))
+                    {
+                        // Add closing tag to end of first line
+                        var newFirstLine = firstLine + endTag;
+
+                        // Remove "- </i>" or "- </i> " from second line
+                        var newSecondLine = secondLine.StartsWith("- </i> ", StringComparison.Ordinal)
+                            ? "- " + secondLine.Substring(7).TrimStart()
+                            : "- " + secondLine.Substring(6).TrimStart();
+
+                        text = newFirstLine + Environment.NewLine + newSecondLine;
+                    }
+                    // Case 4e: Closing tag at start of second line, first line has content before <i>
+                    // - Text <i>Content one
+                    // - </i> Content two (not italic)
+                    // becomes:
+                    // - Text <i>Content one</i>
+                    // - Content two
+                    else if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                             !firstLine.StartsWith("- <i>", StringComparison.Ordinal) &&
+                             firstLine.Contains(beginTag) &&
+                             !firstLine.Contains(endTag) &&
+                             (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                              secondLine.StartsWith("- </i> ", StringComparison.Ordinal)) &&
+                             !secondLine.Contains(beginTag))
+                    {
+                        // Add closing tag to end of first line
+                        var newFirstLine = firstLine + endTag;
+
+                        // Remove "- </i>" or "- </i> " from second line
+                        var newSecondLine = secondLine.StartsWith("- </i> ", StringComparison.Ordinal)
+                            ? "- " + secondLine.Substring(7)
+                            : "- " + secondLine.Substring(6);
+
+                        text = newFirstLine + Environment.NewLine + newSecondLine;
+                    }
+                    // Case: Italic spans lines, dash inside italic on line 1, closes after dash on line 2
+                    // <i>- Content1
+                    // -</i> Content2
+                    // becomes:
+                    // - <i>Content1</i>
+                    // - Content2
+                    else if (firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("-</i>", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag))
+                    {
+                        // First line: skip "<i>- " (5 chars), wrap content with dash outside
+                        var firstLineContent = firstLine.Substring(5);
+                        firstLine = "- " + beginTag + firstLineContent + endTag;
+
+                        // Second line: remove "-</i>" (5 chars), add "- " + rest
+                        secondLine = "- " + secondLine.Substring(5).TrimStart();
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+                }
+            }
+
             // <i>Foo</i>
             // <i>Bar</i>
             if (italicBeginTagCount == 2 && italicEndTagCount == 2 && noOfLines == 2)
@@ -926,27 +1207,192 @@ namespace Nikse.SubtitleEdit.Core.Common
                     var firstLine = text.Substring(0, index).Trim();
                     var secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
 
-                    if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    // Case: Italic spans lines with dash embedded in closing tag
+                    // - [text1] <i>Content1.
+                    // -</i> [text2] <i>Content2.</i>
+                    // becomes:
+                    // - [text1] <i>Content1.</i>
+                    // - [text2] <i>Content2.</i>
+                    if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        firstLine.Contains(beginTag) &&
+                        !firstLine.Contains(endTag) &&
+                        secondLine.StartsWith("-</i>", StringComparison.Ordinal))
                     {
-                        text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;
-                        text = text.Replace("<i>-  ", "<i>- ");
-                        index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
-                        firstLine = text.Substring(0, index).Trim();
-                        secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
-                    }
-                    if (secondLine.Length > 10 && secondLine.StartsWith("- <i>", StringComparison.Ordinal) && secondLine.EndsWith(endTag, StringComparison.Ordinal))
-                    {
-                        text = firstLine + Environment.NewLine + "<i>- " + secondLine.Remove(0, 5);
-                        text = text.Replace("<i>-  ", "<i>- ");
-                        index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
-                        firstLine = text.Substring(0, index).Trim();
-                        secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+                        // Add closing tag to first line
+                        firstLine = firstLine + endTag;
+                        // Remove "-</i>" from second line and replace with "- "
+                        secondLine = "- " + secondLine.Substring(5).TrimStart();
+                        text = firstLine + Environment.NewLine + secondLine;
                     }
 
-                    if (Utilities.StartsAndEndsWithTag(firstLine, beginTag, endTag) && Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
+                    // Case: Italic spans lines, first line has dash inside italic, second line closes after dash
+                    // <i>- Content1
+                    // - </i> Content2, <i>Content3</i>
+                    // becomes:
+                    // - <i>Content1</i>
+                    // - Content2, <i>Content3</i>
+                    if (firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 1 &&
+                        !firstLine.Contains(endTag) &&
+                        (secondLine.StartsWith("- </i> ", StringComparison.Ordinal) ||
+                         secondLine.StartsWith("- </i>", StringComparison.Ordinal)))
                     {
-                        text = text.Replace(beginTag, string.Empty).Replace(endTag, string.Empty).Trim();
-                        text = beginTag + text + endTag;
+                        // First line: skip "<i>- " (5 chars), wrap content in italics with dash outside
+                        var firstLineContent = firstLine.Substring(5);
+                        firstLine = "- " + beginTag + firstLineContent + endTag;
+
+                        // Second line: remove "- </i> " or "- </i>", keep "- " + rest
+                        if (secondLine.StartsWith("- </i> ", StringComparison.Ordinal))
+                        {
+                            secondLine = "- " + secondLine.Substring(7); // Skip "- </i> " (7 chars)
+                        }
+                        else
+                        {
+                            secondLine = "- " + secondLine.Substring(6); // Skip "- </i>" (6 chars)
+                        }
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
+                    // Case: Dialog with partial italic on line 1 (has unclosed <i> at end)
+                    // and dash outside italic on line 2
+                    // - <i>text1</i>… <i> text2
+                    // - text3</i>
+                    // becomes:
+                    // - <i>text1</i>… <i> text2</i>
+                    // - <i>text3</i>
+                    if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 1 &&
+                        !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                        secondLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        !secondLine.Contains(beginTag) &&
+                        secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Add closing tag to end of first line
+                        firstLine = firstLine + endTag;
+                        // Add opening tag after dash on second line
+                        secondLine = "- " + beginTag + secondLine.Substring(2);
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
+                    // Case: First line is only an italicized dash with no content
+                    // <i>-</i>
+                    // <i>- Content</i>
+                    // becomes:
+                    // - <i>Content</i>
+                    if ((firstLine == "<i>-</i>" || firstLine == "<i>- </i>") &&
+                        secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Remove first line, move dash outside italic on second line
+                        var content = secondLine.Substring(5, secondLine.Length - 5 - endTag.Length);
+                        text = "- " + beginTag + content + endTag;
+                    }
+                    // Case: First line is only an italicized dash, second line already has dash outside
+                    // <i>-</i>
+                    // - <i>Content</i>
+                    // becomes:
+                    // - <i>Content</i>
+                    else if ((firstLine == "<i>-</i>" || firstLine == "<i>- </i>") &&
+                             secondLine.StartsWith("- <i>", StringComparison.Ordinal))
+                    {
+                        text = secondLine;
+                    }
+
+                    // Case: First line has only dash italicized with content after
+                    // <i>- </i> Content1
+                    // <i>- Content2</i>
+                    // becomes:
+                    // - Content1
+                    // - <i>Content2</i>
+                    if ((firstLine.StartsWith("<i>- </i> ", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i> ", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i>", StringComparison.Ordinal)) &&
+                        firstLine.Substring(firstLine.IndexOf("</i>", StringComparison.Ordinal) + 4).Trim().Length > 0 &&
+                        !firstLine.Substring(firstLine.IndexOf("</i>", StringComparison.Ordinal) + 4).Trim().StartsWith("<i>", StringComparison.Ordinal) &&
+                        secondLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                        secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    {
+                        // Remove italic tags from first line, keep dash and content
+                        var closeIdx = firstLine.IndexOf("</i>", StringComparison.Ordinal);
+                        var contentAfter = firstLine.Substring(closeIdx + 4).TrimStart();
+                        firstLine = "- " + contentAfter;
+
+                        // Second line: move dash outside italic
+                        var content = secondLine.Substring(5, secondLine.Length - 5 - endTag.Length);
+                        secondLine = "- " + beginTag + content + endTag;
+
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
+                    // Case: First line has italicized dash at start, content, then unclosed italic
+                    // Second line closes the italic after the dash
+                    // <i>- </i>[content1] <i>content2
+                    // - </i>[content3]
+                    // becomes:
+                    // - [content1] <i>content2</i>
+                    // - [content3]
+                    if ((firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i>", StringComparison.Ordinal)) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 1 &&
+                        (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                         secondLine.StartsWith("- </i> ", StringComparison.Ordinal)))
+                    {
+                        // First line: remove "<i>- </i>" or "<i>-</i>", add "- " at start, close the unclosed italic at end
+                        var closeIdx = firstLine.IndexOf("</i>", StringComparison.Ordinal);
+                        var contentAfter = firstLine.Substring(closeIdx + 4).TrimStart();
+                        firstLine = "- " + contentAfter + endTag;
+
+                        // Second line: remove "- </i>" or "- </i> ", keep "- " + rest
+                        if (secondLine.StartsWith("- </i> ", StringComparison.Ordinal))
+                        {
+                            secondLine = "- " + secondLine.Substring(7); // Skip "- </i> " (7 chars)
+                        }
+                        else
+                        {
+                            secondLine = "- " + secondLine.Substring(6); // Skip "- </i>" (6 chars)
+                        }
+
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
+                    //if (firstLine.Length > 10 && firstLine.StartsWith("- <i>", StringComparison.Ordinal) && firstLine.EndsWith(endTag, StringComparison.Ordinal))
+                    //{
+                    //    text = "<i>- " + firstLine.Remove(0, 5) + Environment.NewLine + secondLine;
+                    //    text = text.Replace("<i>-  ", "<i>- ");
+                    //    index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                    //    firstLine = text.Substring(0, index).Trim();
+                    //    secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+                    //}
+                    //if (secondLine.Length > 10 && secondLine.StartsWith("- <i>", StringComparison.Ordinal) && secondLine.EndsWith(endTag, StringComparison.Ordinal))
+                    //{
+                    //    text = firstLine + Environment.NewLine + "<i>- " + secondLine.Remove(0, 5);
+                    //    text = text.Replace("<i>-  ", "<i>- ");
+                    //    index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                    //    firstLine = text.Substring(0, index).Trim();
+                    //    secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+                    //}
+
+                    // Merge per-line italics into spanning italics (non-dialog only)
+                    // <i>Foo</i>
+                    // <i>Bar</i>
+                    // becomes:
+                    // <i>Foo
+                    // Bar</i>
+                    if (Utilities.StartsAndEndsWithTag(firstLine, beginTag, endTag) &&
+                        Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
+                    {
+                        // Only merge if neither line starts with a dialog dash
+                        var firstLineClean = RemoveHtmlTags(firstLine);
+                        var secondLineClean = RemoveHtmlTags(secondLine);
+                        if (!firstLineClean.StartsWith("-", StringComparison.Ordinal) &&
+                            !secondLineClean.StartsWith("-", StringComparison.Ordinal))
+                        {
+                            text = text.Replace(beginTag, string.Empty).Replace(endTag, string.Empty).Trim();
+                            text = beginTag + text + endTag;
+                        }
                     }
                 }
 
@@ -1000,6 +1446,43 @@ namespace Nikse.SubtitleEdit.Core.Common
                     text = text.Replace(endTag, string.Empty);
                     text = text.Replace("  ", " ").Trim();
                     text = beginTag + text + endTag;
+                }
+            }
+
+            // Case: Dialog with partial italic on line 1 (has 2 open, 1 close - unclosed at end)
+            // and closing tag after dash on line 2 (has 1 open, 2 close)
+            // - <i>text1</i>… <i> text2
+            // - </i>[speaker] <i>text3</i>
+            // becomes:
+            // - <i>text1</i>… <i> text2</i>
+            // - [speaker] <i>text3</i>
+            if (italicBeginTagCount == 3 && italicEndTagCount == 3 && noOfLines == 2)
+            {
+                var index = text.IndexOf(Environment.NewLine, StringComparison.Ordinal);
+                if (index > 0)
+                {
+                    var firstLine = text.Substring(0, index).Trim();
+                    var secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
+
+                    if (firstLine.StartsWith("- ", StringComparison.Ordinal) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 1 &&
+                        !firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                        (secondLine.StartsWith("- </i>", StringComparison.Ordinal) ||
+                         secondLine.StartsWith("- </i> ", StringComparison.Ordinal)) &&
+                        Utilities.CountTagInText(secondLine, beginTag) == 1 &&
+                        Utilities.CountTagInText(secondLine, endTag) == 2)
+                    {
+                        // Add closing tag to end of first line
+                        firstLine = firstLine + endTag;
+
+                        // Remove "- </i>" or "- </i> " from second line
+                        secondLine = secondLine.StartsWith("- </i> ", StringComparison.Ordinal)
+                            ? "- " + secondLine.Substring(7)
+                            : "- " + secondLine.Substring(6);
+
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
                 }
             }
 
