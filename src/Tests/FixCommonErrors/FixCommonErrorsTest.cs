@@ -1125,6 +1125,74 @@ namespace Tests.FixCommonErrors
             }
         }
 
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketWithLetter()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Slim]How do we know which grave?");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Slim] How do we know which grave?", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketWithMusicSymbol()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[song continues playing]♪");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[song continues playing] ♪", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketWithItalicTag()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Ghoul]Oh, <i>I'm you, sweetie.</i>");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Ghoul] Oh, <i>I'm you, sweetie.</i>", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketNoChangeWithSpace()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                const string input = "[Narrator] This is a test.";
+                InitializeFixCommonErrorsLine(target, input);
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual(input, _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketNoChangeWithClosingTag()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                const string input = "<i>[whispers]</i>";
+                InitializeFixCommonErrorsLine(target, input);
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual(input, _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketMultiple()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Man]Hello. [Woman]Hi there.");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Man] Hello. [Woman] Hi there.", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
         #endregion Fix missing spaces
 
         #region Fix unneeded spaces
@@ -1623,6 +1691,45 @@ namespace Tests.FixCommonErrors
             Assert.AreEqual("Bye." + Environment.NewLine + "<i>- Bye.</i>", p.Text);
         }
 
+        [TestMethod]
+        public void StartWithUppercaseAfterParagraphNoChangeUnicodeEllipsis()
+        {
+            // When previous paragraph ends with Unicode ellipsis, don't capitalize (line continuation)
+            var prev = new Paragraph("And then…", 0, 1000);
+            var p = new Paragraph("he left.", 1200, 5000);
+            var s = new Subtitle();
+            s.Paragraphs.Add(prev);
+            s.Paragraphs.Add(p);
+            new FixStartWithUppercaseLetterAfterParagraph().Fix(s, new EmptyFixCallback());
+            Assert.AreEqual("he left.", p.Text);
+        }
+
+        [TestMethod]
+        public void StartWithUppercaseAfterParagraphNoChangeUnicodeEllipsisMultiLine()
+        {
+            // When first line ends with Unicode ellipsis, don't capitalize second line (line continuation)
+            var prev = new Paragraph("Hello!", 0, 1000);
+            var p = new Paragraph("And then…" + Environment.NewLine + "he left.", 1200, 5000);
+            var s = new Subtitle();
+            s.Paragraphs.Add(prev);
+            s.Paragraphs.Add(p);
+            new FixStartWithUppercaseLetterAfterParagraph().Fix(s, new EmptyFixCallback());
+            Assert.AreEqual("And then…" + Environment.NewLine + "he left.", p.Text);
+        }
+
+        [TestMethod]
+        public void StartWithUppercaseAfterParagraphNoChangeUnicodeEllipsisInPre()
+        {
+            // When second line starts with Unicode ellipsis prefix, don't capitalize
+            var prev = new Paragraph("Hello!", 0, 1000);
+            var p = new Paragraph("And then" + Environment.NewLine + "…he left.", 1200, 5000);
+            var s = new Subtitle();
+            s.Paragraphs.Add(prev);
+            s.Paragraphs.Add(p);
+            new FixStartWithUppercaseLetterAfterParagraph().Fix(s, new EmptyFixCallback());
+            Assert.AreEqual("And then" + Environment.NewLine + "…he left.", p.Text);
+        }
+
         #endregion Start with uppercase after paragraph
 
         #region Fix Spanish question and exclamation marks
@@ -1749,6 +1856,23 @@ namespace Tests.FixCommonErrors
                 new FixSpanishInvertedQuestionAndExclamationMarks().Fix(_subtitle, new EmptyFixCallback());
                 Assert.AreEqual(_subtitle.Paragraphs[0].Text, "¿Debo preguntar...");
                 Assert.AreEqual(_subtitle.Paragraphs[1].Text, "...otra vez?");
+            }
+        }
+
+        [TestMethod]
+        public void FixSpanishUnicodeEllipsisContinuation()
+        {
+            // When previous paragraph ends with Unicode ellipsis, treat as open sentence
+            using (var target = GetFixCommonErrorsLib())
+            {
+                _subtitle = new Subtitle();
+                _subtitle.Paragraphs.Add(new Paragraph("¿Debo preguntar…", 7000, 10000));
+                _subtitle.Paragraphs.Add(new Paragraph("otra vez?", 10100, 12000));
+                target.Initialize(_subtitle, new SubRip(), System.Text.Encoding.UTF8);
+                new FixSpanishInvertedQuestionAndExclamationMarks().Fix(_subtitle, new EmptyFixCallback());
+                // Second paragraph should NOT get ¿ added because first paragraph ends with …
+                Assert.AreEqual("¿Debo preguntar…", _subtitle.Paragraphs[0].Text);
+                Assert.AreEqual("otra vez?", _subtitle.Paragraphs[1].Text);
             }
         }
 

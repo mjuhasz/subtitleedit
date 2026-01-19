@@ -717,6 +717,41 @@ namespace Tests.Logic
         }
 
         [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketSpaceAfterOpening()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[ man 1]", "en");
+            Assert.AreEqual("[man 1]", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketSpaceBeforeClosing()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[man 1 ]", "en");
+            Assert.AreEqual("[man 1]", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketSpacesBothSides()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[ man 1 ]", "en");
+            Assert.AreEqual("[man 1]", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketMultiple()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[man 1 ] A movie." + Environment.NewLine + "[ silently] watching", "en");
+            Assert.AreEqual("[man 1] A movie." + Environment.NewLine + "[silently] watching", s);
+        }
+
+        [TestMethod]
+        public void RemoveUnneededSpacesSdhBracketWithItalic()
+        {
+            string s = Utilities.RemoveUnneededSpaces("[man 1 ] A <i>Man and His Dog,</i>", "en");
+            Assert.AreEqual("[man 1] A <i>Man and His Dog,</i>", s);
+        }
+
+        [TestMethod]
         public void CountTagInTextStringOneLetterString()
         {
             int count = Utilities.CountTagInText("HHH", "H");

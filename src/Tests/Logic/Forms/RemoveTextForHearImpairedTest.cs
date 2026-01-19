@@ -2377,5 +2377,55 @@ namespace Tests.Logic.Forms
             var actual = target.RemoveTextFromHearImpaired(text, _interjectionsLanguageCode);
             Assert.AreEqual(expected, actual);
         }
+
+        [TestMethod]
+        public void RemoveColonKeepDashOutsideItalic()
+        {
+            var target = GetRemoveTextForHiLib();
+            target.Settings.RemoveTextBeforeColon = true;
+            target.Settings.ColonSeparateLine = false;
+            target.Settings.RemoveTextBeforeColonOnlyUppercase = false;
+            // When removing speaker "MAN:" from italic text, dash should be outside italic
+            var text = "<i>MAN: Hello there.</i>" + Environment.NewLine + "What's going on?";
+            var expected = "<i>Hello there.</i>" + Environment.NewLine + "What's going on?";
+            var actual = target.RemoveColon(text);
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        public void RemoveColonKeepDashOutsideItalicLine2()
+        {
+            var target = GetRemoveTextForHiLib();
+            target.Settings.RemoveTextBeforeColon = true;
+            target.Settings.ColonSeparateLine = false;
+            target.Settings.RemoveTextBeforeColonOnlyUppercase = false;
+            // When adding dialog dash to second line with italic, dash should be outside italic
+            var text = "- Hello there." + Environment.NewLine + "<i>Goodbye.</i>";
+            var actual = target.RemoveColon(text);
+            // If code adds dashes, they should be outside italic
+            if (actual.Contains(Environment.NewLine + "- <i>"))
+            {
+                Assert.IsTrue(true); // Dash correctly outside italic
+            }
+            else if (actual.Contains(Environment.NewLine + "<i>- "))
+            {
+                Assert.Fail("Dash should be outside italic tag, not inside");
+            }
+        }
+
+        [TestMethod]
+        public void DontInsertDashAfterUnicodeEllipsis()
+        {
+            var target = GetRemoveTextForHiLib();
+            target.Settings.RemoveTextBeforeColon = true;
+            target.Settings.ColonSeparateLine = false;
+            target.Settings.RemoveTextBeforeColonOnlyUppercase = true;
+            // When first line ends with lowercase and second line continues with ellipsis prefix,
+            // no dash should be inserted (line continuation)
+            var text = "SPEAKER: Hello there," + Environment.NewLine + "…and goodbye.";
+            var actual = target.RemoveColon(text);
+            // Should not add dialog dash when Unicode ellipsis indicates continuation
+            Assert.IsFalse(actual.Contains("- …"), "Should not add dash before Unicode ellipsis continuation");
+        }
     }
 }
