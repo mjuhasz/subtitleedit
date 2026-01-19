@@ -159,9 +159,9 @@ namespace Nikse.SubtitleEdit.Core.Forms
                                         s = s.Insert(indexOf + 1, " -");
                                         if (newText.StartsWith("<i>", StringComparison.Ordinal) && !newText.StartsWith("<i>-", StringComparison.Ordinal))
                                         {
-                                            newText = "<i>- " + newText.Remove(0, 3);
+                                            newText = "- <i>" + newText.Remove(0, 3);
                                         }
-                                        else if (!newText.StartsWith('-'))
+                                        else if (!newText.StartsWith('-') && !newText.StartsWith("- "))
                                         {
                                             newText = "- " + newText;
                                         }
@@ -426,9 +426,9 @@ namespace Nikse.SubtitleEdit.Core.Forms
                                             s = s.Insert(indexOf + 1, " -");
                                             if (newText.StartsWith("<i>", StringComparison.Ordinal) && !newText.StartsWith("<i>-", StringComparison.Ordinal))
                                             {
-                                                newText = "<i>- " + newText.Remove(0, 3);
+                                                newText = "- <i>" + newText.Remove(0, 3);
                                             }
-                                            else if (!newText.StartsWith('-'))
+                                            else if (!newText.StartsWith('-') && !newText.StartsWith("- "))
                                             {
                                                 newText = "- " + newText;
                                             }
@@ -517,7 +517,7 @@ namespace Nikse.SubtitleEdit.Core.Forms
                             var c = arr0[arr0.Length - 1];
                             if (char.IsLower(c) || c == ',') // first line ends with comma or lower case letter
                             {
-                                if (!arr1Strippable.Pre.Contains("..."))
+                                if (!arr1Strippable.Pre.Contains("...") && !arr1Strippable.Pre.Contains("…"))
                                 {
                                     insertDash = false;
                                 }
@@ -602,7 +602,7 @@ namespace Nikse.SubtitleEdit.Core.Forms
                 {
                     if (newText.Contains(Environment.NewLine + "<i>"))
                     {
-                        newText = newText.Replace(Environment.NewLine + "<i>", Environment.NewLine + "<i>- ");
+                        newText = newText.Replace(Environment.NewLine + "<i>", Environment.NewLine + "- <i>");
                     }
                     else
                     {

@@ -177,6 +177,7 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     if ((!text.StartsWith("www.", StringComparison.Ordinal) && !text.StartsWith("http:", StringComparison.Ordinal) && !text.StartsWith("https:", StringComparison.Ordinal)) &&
                         (char.IsLower(firstLetter) || Helper.IsTurkishLittleI(firstLetter, encoding, language)) &&
                         !prevText.EndsWith("...", StringComparison.Ordinal) &&
+                        !prevText.EndsWith("…", StringComparison.Ordinal) &&
                         isPrevEndOfLine)
                     {
                         bool isMatchInKnowAbbreviations = language == "en" &&
@@ -295,12 +296,12 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     string text = p.Text.Substring(indexOfNewLine + len);
                     var st = new StrippableText(text);
 
-                    if (st.StrippedText.Length > 0 && Helper.IsTurkishLittleI(st.StrippedText[0], encoding, language) && !st.Pre.EndsWith('[') && !st.Pre.Contains("..."))
+                    if (st.StrippedText.Length > 0 && Helper.IsTurkishLittleI(st.StrippedText[0], encoding, language) && !st.Pre.EndsWith('[') && !st.Pre.Contains("...") && !st.Pre.Contains("…"))
                     {
                         text = st.Pre + Helper.GetTurkishUppercaseLetter(st.StrippedText[0], encoding) + st.StrippedText.Substring(1) + st.Post;
                         p.Text = p.Text.Remove(indexOfNewLine + len).Insert(indexOfNewLine + len, text);
                     }
-                    else if (st.StrippedText.Length > 0 && st.StrippedText[0] != char.ToUpper(st.StrippedText[0]) && !st.Pre.EndsWith('[') && !st.Pre.Contains("..."))
+                    else if (st.StrippedText.Length > 0 && st.StrippedText[0] != char.ToUpper(st.StrippedText[0]) && !st.Pre.EndsWith('[') && !st.Pre.Contains("...") && !st.Pre.Contains("…"))
                     {
                         text = st.Pre + char.ToUpper(st.StrippedText[0]) + st.StrippedText.Substring(1) + st.Post;
                         p.Text = p.Text.Remove(indexOfNewLine + len).Insert(indexOfNewLine + len, text);
