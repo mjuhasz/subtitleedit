@@ -868,7 +868,31 @@ namespace Nikse.SubtitleEdit.Core.Forms
                 {
                     if (inputWithoutUnicodeReplace.Contains(removeIfTextContain))
                     {
-                        return string.Empty;
+                        if (!inputWithoutUnicodeReplace.Contains(Environment.NewLine))
+                        {
+                            return string.Empty;
+                        }
+
+                        // Multi-line: check if non-matching lines are independent dialog
+                        // (starting with '-'). If so, fall through to per-line removal.
+                        // Otherwise remove the entire entry (it's continuation lyrics).
+                        var hasDialogOnNonMatchingLine = false;
+                        foreach (var line in inputWithoutUnicodeReplace.SplitToLines())
+                        {
+                            var stripped = HtmlUtil.RemoveHtmlTags(line).TrimStart();
+                            if (!stripped.Contains(removeIfTextContain) && stripped.StartsWith('-'))
+                            {
+                                hasDialogOnNonMatchingLine = true;
+                                break;
+                            }
+                        }
+
+                        if (!hasDialogOnNonMatchingLine)
+                        {
+                            return string.Empty;
+                        }
+
+                        break;
                     }
                 }
             }
@@ -921,7 +945,20 @@ namespace Nikse.SubtitleEdit.Core.Forms
                     strippedText += "?";
                 }
 
-                if (!StartsAndEndsWithHearImpairedTags(strippedText))
+                var shouldRemoveLine = StartsAndEndsWithHearImpairedTags(strippedText);
+                if (!shouldRemoveLine && Settings.RemoveWhereContains && Settings.RemoveIfTextContains != null)
+                {
+                    foreach (var removeIfTextContain in Settings.RemoveIfTextContains)
+                    {
+                        if (s.Contains(removeIfTextContain))
+                        {
+                            shouldRemoveLine = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!shouldRemoveLine)
                 {
                     if (removedDialogInFirstLine && stSub.Pre.Contains("- "))
                     {
@@ -991,6 +1028,14 @@ namespace Nikse.SubtitleEdit.Core.Forms
                     if (s.Contains("<i>") && !s.Contains("</i>") && st.Post.Contains("</i>"))
                     {
                         st.Post = st.Post.Replace("</i>", string.Empty);
+                    }
+
+                    if (lineNumber == 0 && parts.Count > 1)
+                    {
+                        if (st.Pre.Replace("♪", string.Empty).Replace("♫", string.Empty).Trim().Length == 0)
+                        {
+                            st.Pre = string.Empty;
+                        }
                     }
 
                     if (lineNumber == parts.Count - 1)

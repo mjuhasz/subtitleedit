@@ -1394,6 +1394,7 @@ namespace Tests.Logic.Forms
             var target = GetRemoveTextForHiLib();
             target.Settings.RemoveTextBetweenSquares = true;
             target.Settings.RemoveIfOnlyMusicSymbols = false;
+            target.Settings.RemoveWhereContains = false;
             const string text = "♪ <font color=\"#000000\">[LIGHT SWITCH CLICKS]</font>";
             const string expected = "♪";
             string actual = target.RemoveTextFromHearImpaired(text, _interjectionsLanguageCode);
@@ -1755,6 +1756,38 @@ namespace Tests.Logic.Forms
         }
 
         [TestMethod]
+        public void RemoveContainsMusicWithDialogAndBracket_MusicFirst()
+        {
+            var target = GetRemoveTextForHiLib();
+            target.Settings.RemoveTextBetweenSquares = true;
+            target.Settings.RemoveTextBetweenCustomTags = false;
+            target.Settings.RemoveWhereContains = true;
+            target.Settings.RemoveIfTextContains = new System.Collections.Generic.List<string> { "♪" };
+            target.Settings.RemoveIfOnlyMusicSymbols = true;
+            target.Settings.RemoveInterjections = false;
+            string actual = target.RemoveTextFromHearImpaired(
+                "- <i>♪ See the pyramids ♪</i>" + Environment.NewLine + "- [child] Hey, Max.",
+                _interjectionsLanguageCode);
+            Assert.AreEqual("Hey, Max.", actual);
+        }
+
+        [TestMethod]
+        public void RemoveContainsMusicWithDialogAndBracket_MusicSecond()
+        {
+            var target = GetRemoveTextForHiLib();
+            target.Settings.RemoveTextBetweenSquares = true;
+            target.Settings.RemoveTextBetweenCustomTags = false;
+            target.Settings.RemoveWhereContains = true;
+            target.Settings.RemoveIfTextContains = new System.Collections.Generic.List<string> { "♪" };
+            target.Settings.RemoveIfOnlyMusicSymbols = true;
+            target.Settings.RemoveInterjections = false;
+            string actual = target.RemoveTextFromHearImpaired(
+                "- [chuckles] Hey." + Environment.NewLine + "- <i>♪ And souvenirs ♪</i>",
+                _interjectionsLanguageCode);
+            Assert.AreEqual("Hey.", actual);
+        }
+
+        [TestMethod]
         public void RemoveSecondLineDialogAndItalicAndMusic2()
         {
             var target = GetRemoveTextForHiLib();
@@ -1763,6 +1796,19 @@ namespace Tests.Logic.Forms
             target.Settings.RemoveTextBetweenCustomTags = false;
             string actual = target.RemoveTextFromHearImpaired("- Ferguson, Kaz..." + Environment.NewLine + "- <i>♪ [Ominous tone plays] ♪</i>", _interjectionsLanguageCode);
             Assert.AreEqual("Ferguson, Kaz...", actual);
+        }
+
+        [TestMethod]
+        public void RemoveContainsMusic_MultiLineSongLyrics()
+        {
+            var target = GetRemoveTextForHiLib();
+            target.Settings.RemoveWhereContains = true;
+            target.Settings.RemoveIfTextContains = new System.Collections.Generic.List<string> { "♪" };
+            target.Settings.RemoveIfOnlyMusicSymbols = true;
+            string actual = target.RemoveTextFromHearImpaired(
+                "<i>♪ To come" + Environment.NewLine + "and take me by the hand</i>",
+                _interjectionsLanguageCode);
+            Assert.AreEqual(string.Empty, actual);
         }
 
         [TestMethod]
