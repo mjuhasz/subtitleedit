@@ -1194,6 +1194,22 @@ namespace Nikse.SubtitleEdit.Core.Common
                         secondLine = "- " + secondLine.Substring(5).TrimStart();
                         text = firstLine + Environment.NewLine + secondLine;
                     }
+                    // Case: Italic spans lines, dash inside italic on both lines, close tag after "- " on line 2
+                    // <i>- Content1
+                    // - </i>Content2
+                    // becomes:
+                    // - <i>Content1</i>
+                    // - Content2
+                    else if (firstLine.StartsWith("<i>- ", StringComparison.Ordinal) &&
+                             !firstLine.Contains(endTag) &&
+                             secondLine.StartsWith("- </i>", StringComparison.Ordinal) &&
+                             !secondLine.Contains(beginTag))
+                    {
+                        var firstLineContent = firstLine.Substring(5);
+                        firstLine = "- " + beginTag + firstLineContent + endTag;
+                        secondLine = "- " + secondLine.Substring(6).TrimStart();
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
                 }
             }
 

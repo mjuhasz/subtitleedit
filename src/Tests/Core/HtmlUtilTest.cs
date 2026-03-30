@@ -247,6 +247,19 @@ namespace Tests.Core
         }
 
         [TestMethod]
+        public void FixInvalidItalicTags_ItalicDashSpanningWithCloseAfterSecondDashSpace()
+        {
+            // <i>- has subsided.
+            // - </i>[retches]
+            // becomes:
+            // - <i>has subsided.</i>
+            // - [retches]
+            string s = "<i>- has subsided." + Environment.NewLine + "- </i>[retches]";
+            Assert.AreEqual("- <i>has subsided.</i>" + Environment.NewLine + "- [retches]",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
         public void FixInvalidItalicTags_EmptyItalicizedDashLine_Removed()
         {
             // <i>-</i>
