@@ -1391,6 +1391,25 @@ namespace Nikse.SubtitleEdit.Core.Common
                     //    secondLine = text.Substring(index + Environment.NewLine.Length).Trim();
                     //}
 
+                    // Case: First line has only dash italicized, plus additional italic content; second line has no italics
+                    // <i>- </i>[Harper] <i>Grams?</i>
+                    // - [Anna] Grams?
+                    // becomes:
+                    // - [Harper] <i>Grams?</i>
+                    // - [Anna] Grams?
+                    if ((firstLine.StartsWith("<i>- </i>", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i> ", StringComparison.Ordinal) ||
+                         firstLine.StartsWith("<i>-</i>", StringComparison.Ordinal)) &&
+                        Utilities.CountTagInText(firstLine, beginTag) == 2 &&
+                        Utilities.CountTagInText(firstLine, endTag) == 2 &&
+                        !secondLine.Contains(beginTag) && !secondLine.Contains(endTag))
+                    {
+                        var closeIdx = firstLine.IndexOf("</i>", StringComparison.Ordinal);
+                        var contentAfter = firstLine.Substring(closeIdx + 4).TrimStart();
+                        firstLine = "- " + contentAfter;
+                        text = firstLine + Environment.NewLine + secondLine;
+                    }
+
                     // Case: Both lines are self-contained italic blocks with dialog dashes inside
                     // <i>- Content1</i>
                     // <i>- Content2</i>

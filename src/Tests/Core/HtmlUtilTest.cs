@@ -332,5 +332,50 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicDashWithSpaceAndAdditionalItalicContent()
+        {
+            // <i>- </i>[Harper] <i>Grams?</i>
+            // - [Anna] Grams?
+            // becomes:
+            // - [Harper] <i>Grams?</i>
+            // - [Anna] Grams?
+            string s = "<i>- </i>[Harper] <i>Grams?</i>" + Environment.NewLine +
+                       "- [Anna] Grams?";
+            Assert.AreEqual("- [Harper] <i>Grams?</i>" + Environment.NewLine +
+                            "- [Anna] Grams?",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicDashNoSpaceBeforeCloseAndAdditionalItalicContent()
+        {
+            // <i>-</i> [Harper] <i>Grams?</i>
+            // - [Anna] Grams?
+            // becomes:
+            // - [Harper] <i>Grams?</i>
+            // - [Anna] Grams?
+            string s = "<i>-</i> [Harper] <i>Grams?</i>" + Environment.NewLine +
+                       "- [Anna] Grams?";
+            Assert.AreEqual("- [Harper] <i>Grams?</i>" + Environment.NewLine +
+                            "- [Anna] Grams?",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicDashNoSpacesAndAdditionalItalicContent()
+        {
+            // <i>-</i>[Harper] <i>Grams?</i>
+            // -[Anna] Grams?
+            // becomes:
+            // - [Harper] <i>Grams?</i>
+            // -[Anna] Grams?
+            string s = "<i>-</i>[Harper] <i>Grams?</i>" + Environment.NewLine +
+                       "-[Anna] Grams?";
+            Assert.AreEqual("- [Harper] <i>Grams?</i>" + Environment.NewLine +
+                            "-[Anna] Grams?",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
