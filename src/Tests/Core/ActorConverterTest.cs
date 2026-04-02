@@ -161,7 +161,7 @@ namespace Tests.Core
 
             var p = new Paragraph() { Text = "Joe: How are you?" + Environment.NewLine + "Jane: I'm fine." };
             var text = c.FixActorsFromBeforeColon(p, ':', null, null);
-            Assert.AreEqual("[Joe] How are you?" + Environment.NewLine + "[Jane] I'm fine.", text);
+            Assert.AreEqual("-[Joe] How are you?" + Environment.NewLine + "-[Jane] I'm fine.", text);
         }
 
         [TestMethod]

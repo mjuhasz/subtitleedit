@@ -96,6 +96,32 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
             }
 
+            // Also treat as dialog when multiple lines have actors
+            if (!hasDialogHyphen && lines.Count > 1)
+            {
+                var actorLineCount = 0;
+                foreach (var line in lines)
+                {
+                    var stripped = line.Trim();
+                    stripped = Regex.Replace(stripped, @"^\{\\an\d+\}", string.Empty);
+                    if (stripped.StartsWith("<i>", StringComparison.Ordinal))
+                    {
+                        stripped = stripped.Substring(3);
+                    }
+
+                    stripped = stripped.TrimStart(' ', '-');
+                    if (stripped.IndexOf(ch) > 0)
+                    {
+                        actorLineCount++;
+                    }
+                }
+
+                if (actorLineCount > 1)
+                {
+                    hasDialogHyphen = true;
+                }
+            }
+
             var sb = new StringBuilder();
             foreach (var line in lines)
             {
