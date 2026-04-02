@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Nikse.SubtitleEdit.Core.Common
 {
@@ -72,11 +73,52 @@ namespace Nikse.SubtitleEdit.Core.Common
 
         public string FixActorsFromBeforeColon(Paragraph p, char ch, int? changeCasing, Color? color)
         {
+            var lines = p.Text.SplitToLines();
+
+            // Check if any line has a leading dialog hyphen (after stripping positioning/italic tags)
+            var hasDialogHyphen = false;
+            if (lines.Count > 1)
+            {
+                foreach (var line in lines)
+                {
+                    var stripped = line.Trim();
+                    stripped = Regex.Replace(stripped, @"^\{\\an\d+\}", string.Empty);
+                    if (stripped.StartsWith("<i>", StringComparison.Ordinal))
+                    {
+                        stripped = stripped.Substring(3);
+                    }
+
+                    if (stripped.StartsWith("-", StringComparison.Ordinal))
+                    {
+                        hasDialogHyphen = true;
+                        break;
+                    }
+                }
+            }
+
             var sb = new StringBuilder();
-            foreach (var line in p.Text.SplitToLines())
+            foreach (var line in lines)
             {
                 var s = line.Trim();
-                var startIdx = line.IndexOf(ch);
+
+                // Extract positioning tag prefix like {\an8}
+                var posTag = string.Empty;
+                var posMatch = Regex.Match(s, @"^\{\\an\d+\}");
+                if (posMatch.Success)
+                {
+                    posTag = posMatch.Value;
+                    s = s.Substring(posTag.Length);
+                }
+
+                // Extract italic wrapper
+                var hasItalic = s.StartsWith("<i>", StringComparison.Ordinal) &&
+                                s.EndsWith("</i>", StringComparison.Ordinal);
+                if (hasItalic)
+                {
+                    s = s.Substring(3, s.Length - 7);
+                }
+
+                var startIdx = s.IndexOf(ch);
                 if (startIdx > 0)
                 {
                     var actor = s.Substring(0, startIdx).Trim(' ', '-', '"');
@@ -97,30 +139,39 @@ namespace Nikse.SubtitleEdit.Core.Common
                     {
                         actor = actor + ":";
                     }
-                    else if (ToActor)
-                    {
-                    }
 
                     if (color.HasValue && !ToActor)
                     {
-                        SetColor(_subtitleFormat, color.Value, actor);
+                        actor = SetColor(_subtitleFormat, color.Value, actor);
                     }
 
-                    if (ToSquare)
+                    var rest = s.Substring(startIdx + 1).TrimStart(' ');
+                    if (hasItalic)
                     {
-                        s = actor + " " + s.Substring(startIdx + 1).TrimStart(' ');
+                        rest = "<i>" + rest + "</i>";
                     }
-                    else if (ToParentheses)
+
+                    var dialogHyphen = hasDialogHyphen ? "-" : string.Empty;
+
+                    if (ToActor)
                     {
-                        s = actor + " " + s.Substring(startIdx + 1).TrimStart(' ');
+                        s = posTag + rest;
                     }
-                    else if (ToColon)
+                    else
                     {
-                        s = actor + " " + s.Substring(startIdx + 1).TrimStart(' ');
+                        s = posTag + dialogHyphen + actor + " " + rest;
                     }
-                    else if (ToActor)
+                }
+                else
+                {
+                    // No actor on this line - reconstruct with positioning tag and italic
+                    if (hasItalic)
                     {
-                        s = s.Substring(startIdx + 1);
+                        s = posTag + "<i>" + s + "</i>";
+                    }
+                    else
+                    {
+                        s = posTag + s;
                     }
                 }
 

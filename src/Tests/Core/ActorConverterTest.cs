@@ -174,7 +174,85 @@ namespace Tests.Core
 
             var p = new Paragraph() { Text = "- Joe: How are you?" + Environment.NewLine + "- Jane: I'm fine." };
             var text = c.FixActorsFromBeforeColon(p, ':', null, null);
-            Assert.AreEqual("[Joe] How are you?" + Environment.NewLine + "[Jane] I'm fine.", text);
+            Assert.AreEqual("-[Joe] How are you?" + Environment.NewLine + "-[Jane] I'm fine.", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_DialogHyphenOnSecondLine()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "JOHN: Come this way!" + Environment.NewLine + "-On my way." };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("-[JOHN] Come this way!" + Environment.NewLine + "-On my way.", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_DialogHyphenOnFirstLine()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "-Do you hear me?" + Environment.NewLine + "BETH: Loud and clear!" };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("-Do you hear me?" + Environment.NewLine + "-[BETH] Loud and clear!", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_PositioningTag()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "{\\an8}JOHN: Come this way!" + Environment.NewLine + "-On my way." };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("{\\an8}-[JOHN] Come this way!" + Environment.NewLine + "-On my way.", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_ItalicWithDialogHyphen()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "<i>JOHN: Come this way!</i>" + Environment.NewLine + "-On my way." };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("-[JOHN] <i>Come this way!</i>" + Environment.NewLine + "-On my way.", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_ItalicOnSecondLineWithDialogHyphen()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "-Do you hear me?" + Environment.NewLine + "<i>BETH: Loud and clear!</i>" };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("-Do you hear me?" + Environment.NewLine + "-[BETH] <i>Loud and clear!</i>", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_PositioningTagAndItalic()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "{\\an8}<i>JOHN: Come this way!</i>" + Environment.NewLine + "-On my way." };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("{\\an8}-[JOHN] <i>Come this way!</i>" + Environment.NewLine + "-On my way.", text);
         }
 
         [TestMethod]
