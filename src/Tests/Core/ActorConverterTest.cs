@@ -243,6 +243,32 @@ namespace Tests.Core
         }
 
         [TestMethod]
+        public void ColonToSquare_OneActorOnSecondLine()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "Just point the camera." + Environment.NewLine + "TIM: Roger that." };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("-Just point the camera." + Environment.NewLine + "-[TIM] Roger that.", text);
+        }
+
+        [TestMethod]
+        public void ColonToSquare_OneActorOnFirstLine_NoHyphens()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "VOGEL: Where did you" + Environment.NewLine + "last see him?" };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("[VOGEL] Where did you" + Environment.NewLine + "last see him?", text);
+        }
+
+        [TestMethod]
         public void ColonToSquare_PositioningTagAndItalic()
         {
             var c = new ActorConverter(new SubRip(), "en")

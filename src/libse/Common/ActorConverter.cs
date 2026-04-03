@@ -96,27 +96,18 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
             }
 
-            // Also treat as dialog when multiple lines have actors
+            // Also treat as dialog when the second line has an actor
             if (!hasDialogHyphen && lines.Count > 1)
             {
-                var actorLineCount = 0;
-                foreach (var line in lines)
+                var secondLine = lines[1].Trim();
+                secondLine = Regex.Replace(secondLine, @"^\{\\an\d+\}", string.Empty);
+                if (secondLine.StartsWith("<i>", StringComparison.Ordinal))
                 {
-                    var stripped = line.Trim();
-                    stripped = Regex.Replace(stripped, @"^\{\\an\d+\}", string.Empty);
-                    if (stripped.StartsWith("<i>", StringComparison.Ordinal))
-                    {
-                        stripped = stripped.Substring(3);
-                    }
-
-                    stripped = stripped.TrimStart(' ', '-');
-                    if (stripped.IndexOf(ch) > 0)
-                    {
-                        actorLineCount++;
-                    }
+                    secondLine = secondLine.Substring(3);
                 }
 
-                if (actorLineCount > 1)
+                secondLine = secondLine.TrimStart(' ', '-');
+                if (secondLine.IndexOf(ch) > 0)
                 {
                     hasDialogHyphen = true;
                 }
@@ -191,13 +182,14 @@ namespace Nikse.SubtitleEdit.Core.Common
                 else
                 {
                     // No actor on this line - reconstruct with positioning tag and italic
+                    var dialogHyphen = hasDialogHyphen && !s.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
                     if (hasItalic)
                     {
-                        s = posTag + "<i>" + s + "</i>";
+                        s = posTag + dialogHyphen + "<i>" + s + "</i>";
                     }
                     else
                     {
-                        s = posTag + s;
+                        s = posTag + dialogHyphen + s;
                     }
                 }
 
