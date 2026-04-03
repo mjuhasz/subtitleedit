@@ -1193,6 +1193,17 @@ namespace Tests.FixCommonErrors
             }
         }
 
+        [TestMethod]
+        public void FixMissingSpacesNoChangeQuoteFollowedByEllipsis()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Sanders] <i>if we're gonna call\r\nsomething \"Project Elrond\"…</i>");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Sanders] <i>if we're gonna call\r\nsomething \"Project Elrond\"…</i>", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
         #endregion Fix missing spaces
 
         #region Fix unneeded spaces
