@@ -377,5 +377,61 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicStartsInsideSquareBracket()
+        {
+            // [<i>operator] Yes, sir -> [operator] <i>Yes, sir</i>
+            string s = "[<i>operator] Yes, sir";
+            Assert.AreEqual("[operator] <i>Yes, sir</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicWrappingSquareBracketContent()
+        {
+            // <i>[repeating message in French]</i> -> [repeating message in French]
+            string s = "<i>[repeating message in French]</i>";
+            Assert.AreEqual("[repeating message in French]", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicWrappingBracketOnFirstLine()
+        {
+            // <i>[repeating message in French]</i>
+            // - Yes, let's go.
+            // becomes:
+            // [repeating message in French]
+            // - Yes, let's go.
+            string s = "<i>[repeating message in French]</i>" + Environment.NewLine +
+                       "- Yes, let's go.";
+            Assert.AreEqual("[repeating message in French]" + Environment.NewLine +
+                            "- Yes, let's go.",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicBeforeBracketWithContent()
+        {
+            // <i>[echoing] You killed two people, Bourne.</i>
+            // becomes:
+            // [echoing] <i>You killed two people, Bourne.</i>
+            string s = "<i>[echoing] You killed two people, Bourne.</i>";
+            Assert.AreEqual("[echoing] <i>You killed two people, Bourne.</i>", HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_ItalicBeforeBracketMultiLine()
+        {
+            // <i>[echoing] You killed two people, Bourne.
+            // Big mistake.</i>
+            // becomes:
+            // [echoing] <i>You killed two people, Bourne.
+            // Big mistake.</i>
+            string s = "<i>[echoing] You killed two people, Bourne." + Environment.NewLine +
+                       "Big mistake.</i>";
+            Assert.AreEqual("[echoing] <i>You killed two people, Bourne." + Environment.NewLine +
+                            "Big mistake.</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }

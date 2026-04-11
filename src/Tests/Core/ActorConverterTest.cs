@@ -316,5 +316,30 @@ namespace Tests.Core
             Assert.AreEqual(p.Style, result.NextParagraph.Style);
             Assert.AreNotEqual(p.Id, result.NextParagraph.Id);
         }
+        [TestMethod]
+        public void ParenthesesToSquare_MultiLine()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "(survey five" + Environment.NewLine + "talking in the van)" };
+            var result = c.FixActors(p, '(', ')', null, null);
+            Assert.AreEqual("[survey five" + Environment.NewLine + "talking in the van]", result.Paragraph.Text);
+        }
+
+        [TestMethod]
+        public void SquareToParentheses_MultiLine()
+        {
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToParentheses = true,
+            };
+
+            var p = new Paragraph() { Text = "[survey five" + Environment.NewLine + "talking in the van]" };
+            var result = c.FixActors(p, '[', ']', null, null);
+            Assert.AreEqual("(survey five" + Environment.NewLine + "talking in the van)", result.Paragraph.Text);
+        }
     }
 }

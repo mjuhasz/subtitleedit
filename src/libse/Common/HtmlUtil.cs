@@ -740,6 +740,108 @@ namespace Nikse.SubtitleEdit.Core.Common
             text = text.Replace("] </i>", "] </i>");
             text = text.Replace(") </i>", ") </i>");
 
+            // Move <i> from inside bracket to after bracket close
+            // [<i>operator] Yes, sir -> [operator] <i>Yes, sir
+            foreach (var bracketOpen in new[] { '[', '(' })
+            {
+                var bracketClose = bracketOpen == '[' ? ']' : ')';
+                var pattern = bracketOpen + beginTag;
+                var idx = text.IndexOf(pattern, StringComparison.Ordinal);
+                if (idx >= 0)
+                {
+                    var bracketCloseIdx = text.IndexOf(bracketClose, idx + pattern.Length);
+                    var endTagIdx = text.IndexOf(endTag, idx + pattern.Length);
+                    if (bracketCloseIdx > idx && (endTagIdx < 0 || endTagIdx > bracketCloseIdx))
+                    {
+                        text = text.Remove(idx + 1, beginTag.Length);
+                        bracketCloseIdx -= beginTag.Length;
+                        var insertPos = bracketCloseIdx + 1;
+                        if (insertPos < text.Length && text[insertPos] == ' ')
+                        {
+                            insertPos++;
+                        }
+
+                        text = text.Insert(insertPos, beginTag);
+                    }
+                }
+            }
+
+            // Move <i> from before bracket to after bracket close
+            // <i>[echoing] You killed two people.</i> -> [echoing] <i>You killed two people.</i>
+            var italicBracketLines = text.SplitToLines();
+            var italicBracketChanged = false;
+            for (var i = 0; i < italicBracketLines.Count; i++)
+            {
+                var line = italicBracketLines[i];
+                foreach (var bracketOpen in new[] { '[', '(' })
+                {
+                    var bracketClose = bracketOpen == '[' ? ']' : ')';
+                    var prefix = beginTag + bracketOpen;
+                    if (!line.StartsWith(prefix, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var closeIdx = line.IndexOf(bracketClose, prefix.Length);
+                    if (closeIdx < 0)
+                    {
+                        continue;
+                    }
+
+                    // Check there's text content after the bracket close (not just </i> or empty)
+                    var afterBracket = line.Substring(closeIdx + 1).TrimStart();
+                    if (afterBracket.Length == 0 || afterBracket == endTag)
+                    {
+                        break; // no text after bracket - let the next block handle it
+                    }
+
+                    // Remove <i> from before bracket
+                    line = line.Substring(beginTag.Length);
+                    closeIdx -= beginTag.Length;
+
+                    // Insert <i> after bracket close + space
+                    var insertPos = closeIdx + 1;
+                    if (insertPos < line.Length && line[insertPos] == ' ')
+                    {
+                        insertPos++;
+                    }
+
+                    line = line.Insert(insertPos, beginTag);
+
+                    italicBracketLines[i] = line;
+                    italicBracketChanged = true;
+                    break;
+                }
+            }
+
+            if (italicBracketChanged)
+            {
+                text = string.Join(Environment.NewLine, italicBracketLines);
+            }
+
+            // Remove italic tags wrapping bracket/HI content
+            // <i>[repeating message in French]</i> -> [repeating message in French]
+            var bracketItalicLines = text.SplitToLines();
+            var bracketItalicChanged = false;
+            for (var i = 0; i < bracketItalicLines.Count; i++)
+            {
+                var line = bracketItalicLines[i];
+                if ((line.StartsWith("<i>[", StringComparison.Ordinal) && line.EndsWith("]</i>", StringComparison.Ordinal)) ||
+                    (line.StartsWith("<i>(", StringComparison.Ordinal) && line.EndsWith(")</i>", StringComparison.Ordinal)))
+                {
+                    if (Utilities.CountTagInText(line, beginTag) == 1 && Utilities.CountTagInText(line, endTag) == 1)
+                    {
+                        bracketItalicLines[i] = line.Substring(beginTag.Length, line.Length - beginTag.Length - endTag.Length);
+                        bracketItalicChanged = true;
+                    }
+                }
+            }
+
+            if (bracketItalicChanged)
+            {
+                text = string.Join(Environment.NewLine, bracketItalicLines);
+            }
+
             text = text.Replace(beginTag + beginTag, beginTag);
             text = text.Replace(endTag + endTag, endTag);
 

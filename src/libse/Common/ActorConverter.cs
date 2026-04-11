@@ -209,6 +209,51 @@ namespace Nikse.SubtitleEdit.Core.Common
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
             }
 
+            // Handle multi-line bracket: open bracket on line 1, close bracket on line 2
+            if (lines.Count == 2)
+            {
+                var line1StartIdx = lines[0].IndexOf(start);
+                var line1EndIdx = lines[0].IndexOf(end);
+                var line2StartIdx = lines[1].IndexOf(start);
+                var line2EndIdx = lines[1].IndexOf(end);
+
+                if (line1StartIdx != -1 && line1EndIdx == -1 && line2EndIdx != -1 && line2StartIdx == -1)
+                {
+                    var contentLine1 = lines[0].Substring(line1StartIdx + 1);
+                    var contentLine2 = lines[1].Substring(0, line2EndIdx);
+                    var actor = (contentLine1.Trim() + " " + contentLine2.Trim()).Trim(' ', '-', '"');
+                    var selected = IsActor(actor);
+
+                    if (changeCasing.HasValue)
+                    {
+                        contentLine1 = SetCasing(_subtitleFormat, changeCasing, contentLine1);
+                        contentLine2 = SetCasing(_subtitleFormat, changeCasing, contentLine2);
+                    }
+
+                    if (ToSquare)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '[' + contentLine1;
+                        lines[1] = contentLine2 + ']' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToParentheses)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '(' + contentLine1;
+                        lines[1] = contentLine2 + ')' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToActor)
+                    {
+                        lines[0] = (lines[0].Substring(0, line1StartIdx) + lines[0].Substring(line1StartIdx + 1)).Trim();
+                        lines[1] = (lines[1].Substring(0, line2EndIdx) + lines[1].Substring(line2EndIdx + 1)).Trim();
+                        p.Text = (lines[0] + Environment.NewLine + lines[1]).Trim();
+                        p.Actor = actor;
+                        return new ActorConverterResult { Paragraph = p, Selected = selected };
+                    }
+
+                    p.Text = lines[0] + Environment.NewLine + lines[1];
+                    return new ActorConverterResult { Paragraph = p, Selected = selected };
+                }
+            }
+
             var lineIdx = 0;
             p.Text = string.Empty;
             var selectFix = true;
