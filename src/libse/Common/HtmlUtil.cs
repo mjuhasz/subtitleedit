@@ -768,8 +768,10 @@ namespace Nikse.SubtitleEdit.Core.Common
 
             // Move <i> from before bracket to after bracket close
             // <i>[echoing] You killed two people.</i> -> [echoing] <i>You killed two people.</i>
+            // Only apply when italic tags are balanced - unbalanced tags indicate typos, not structural issues
             var italicBracketLines = text.SplitToLines();
             var italicBracketChanged = false;
+            if (Utilities.CountTagInText(text, beginTag) == Utilities.CountTagInText(text, endTag))
             for (var i = 0; i < italicBracketLines.Count; i++)
             {
                 var line = italicBracketLines[i];
@@ -840,6 +842,33 @@ namespace Nikse.SubtitleEdit.Core.Common
             if (bracketItalicChanged)
             {
                 text = string.Join(Environment.NewLine, bracketItalicLines);
+            }
+
+            // Move <i> from end of line to start of next line
+            // [Bourne] <i>             ->  [Bourne]
+            // I need someone.</i>          <i>I need someone.</i>
+            var trailingItalicLines = text.SplitToLines();
+            var trailingItalicChanged = false;
+            for (var i = 0; i < trailingItalicLines.Count - 1; i++)
+            {
+                var line = trailingItalicLines[i];
+                if (line.EndsWith(" " + beginTag, StringComparison.Ordinal) && trailingItalicLines[i + 1].Contains(endTag))
+                {
+                    trailingItalicLines[i] = line.Substring(0, line.Length - beginTag.Length - 1);
+                    trailingItalicLines[i + 1] = beginTag + trailingItalicLines[i + 1];
+                    trailingItalicChanged = true;
+                }
+                else if (line.EndsWith(beginTag, StringComparison.Ordinal) && trailingItalicLines[i + 1].Contains(endTag))
+                {
+                    trailingItalicLines[i] = line.Substring(0, line.Length - beginTag.Length);
+                    trailingItalicLines[i + 1] = beginTag + trailingItalicLines[i + 1];
+                    trailingItalicChanged = true;
+                }
+            }
+
+            if (trailingItalicChanged)
+            {
+                text = string.Join(Environment.NewLine, trailingItalicLines);
             }
 
             text = text.Replace(beginTag + beginTag, beginTag);

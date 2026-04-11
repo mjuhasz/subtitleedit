@@ -433,5 +433,50 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_TrailingItalicMovedToNextLine()
+        {
+            // [Bourne] <i>
+            // I need someone I know to bring me in.</i>
+            // becomes:
+            // [Bourne]
+            // <i>I need someone I know to bring me in.</i>
+            string s = "[Bourne] <i>" + Environment.NewLine +
+                       "I need someone I know to bring me in.</i>";
+            Assert.AreEqual("[Bourne]" + Environment.NewLine +
+                            "<i>I need someone I know to bring me in.</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_TrailingItalicNoSpaceMovedToNextLine()
+        {
+            // [Bourne]<i>
+            // I need someone I know to bring me in.</i>
+            // becomes:
+            // [Bourne]
+            // <i>I need someone I know to bring me in.</i>
+            string s = "[Bourne]<i>" + Environment.NewLine +
+                       "I need someone I know to bring me in.</i>";
+            Assert.AreEqual("[Bourne]" + Environment.NewLine +
+                            "<i>I need someone I know to bring me in.</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
+        public void FixInvalidItalicTags_TrailingItalicAfterRegularText()
+        {
+            // He said <i>
+            // hello to everyone.</i>
+            // becomes:
+            // He said
+            // <i>hello to everyone.</i>
+            string s = "He said <i>" + Environment.NewLine +
+                       "hello to everyone.</i>";
+            Assert.AreEqual("He said" + Environment.NewLine +
+                            "<i>hello to everyone.</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }
