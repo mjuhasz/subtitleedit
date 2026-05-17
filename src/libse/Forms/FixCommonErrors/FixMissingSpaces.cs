@@ -388,8 +388,9 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     {
                         var nextChar = newText[index + 1];
 
-                        // Add space if next char is a letter, digit, or music symbol
-                        if (Utilities.AllLettersAndNumbers.Contains(nextChar) || "♪♫#".Contains(nextChar))
+                        // Add space if next char is a letter, digit, music symbol, or opening HTML tag
+                        if (Utilities.AllLettersAndNumbers.Contains(nextChar) || "♪♫#".Contains(nextChar) ||
+                            (nextChar == '<' && index + 2 < newText.Length && newText[index + 2] != '/'))
                         {
                             newText = newText.Insert(index + 1, " ");
                             index++; // Account for the inserted space

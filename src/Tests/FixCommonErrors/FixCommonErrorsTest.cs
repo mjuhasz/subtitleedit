@@ -1194,6 +1194,17 @@ namespace Tests.FixCommonErrors
         }
 
         [TestMethod]
+        public void FixMissingSpacesAfterClosingBracketBeforeOpeningTag()
+        {
+            using (var target = GetFixCommonErrorsLib())
+            {
+                InitializeFixCommonErrorsLine(target, "[Tower]<i>Blue Thunder, Tower.</i>");
+                new FixMissingSpaces().Fix(_subtitle, new EmptyFixCallback());
+                Assert.AreEqual("[Tower] <i>Blue Thunder, Tower.</i>", _subtitle.Paragraphs[0].Text);
+            }
+        }
+
+        [TestMethod]
         public void FixMissingSpacesNoChangeQuoteFollowedByEllipsis()
         {
             using (var target = GetFixCommonErrorsLib())
