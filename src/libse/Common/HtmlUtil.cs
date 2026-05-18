@@ -828,12 +828,14 @@ namespace Nikse.SubtitleEdit.Core.Common
             for (var i = 0; i < bracketItalicLines.Count; i++)
             {
                 var line = bracketItalicLines[i];
-                if ((line.StartsWith("<i>[", StringComparison.Ordinal) && line.EndsWith("]</i>", StringComparison.Ordinal)) ||
-                    (line.StartsWith("<i>(", StringComparison.Ordinal) && line.EndsWith(")</i>", StringComparison.Ordinal)))
+                var linePrefix = line.StartsWith("- ", StringComparison.Ordinal) ? "- " : string.Empty;
+                var lineContent = linePrefix.Length > 0 ? line.Substring(linePrefix.Length) : line;
+                if ((lineContent.StartsWith("<i>[", StringComparison.Ordinal) && lineContent.EndsWith("]</i>", StringComparison.Ordinal)) ||
+                    (lineContent.StartsWith("<i>(", StringComparison.Ordinal) && lineContent.EndsWith(")</i>", StringComparison.Ordinal)))
                 {
                     if (Utilities.CountTagInText(line, beginTag) == 1 && Utilities.CountTagInText(line, endTag) == 1)
                     {
-                        bracketItalicLines[i] = line.Substring(beginTag.Length, line.Length - beginTag.Length - endTag.Length);
+                        bracketItalicLines[i] = linePrefix + lineContent.Substring(beginTag.Length, lineContent.Length - beginTag.Length - endTag.Length);
                         bracketItalicChanged = true;
                     }
                 }

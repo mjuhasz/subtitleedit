@@ -409,6 +409,19 @@ namespace Tests.Core
         }
 
         [TestMethod]
+        public void FixInvalidItalicTags_ItalicWrappingBracketWithDialogHyphen()
+        {
+            // - <i>[squeaks]</i>
+            // - Howdy.
+            // becomes:
+            // - [squeaks]
+            // - Howdy.
+            string s = "- <i>[squeaks]</i>" + Environment.NewLine + "- Howdy.";
+            Assert.AreEqual("- [squeaks]" + Environment.NewLine + "- Howdy.",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
         public void FixInvalidItalicTags_ItalicBeforeBracketWithContent()
         {
             // <i>[echoing] You killed two people, Bourne.</i>
