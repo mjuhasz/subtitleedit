@@ -71,6 +71,10 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
             {
                 text = text.TrimStart('.').TrimStart();
             }
+            if (text.StartsWith("…", StringComparison.Ordinal))
+            {
+                text = text.TrimStart('…').TrimStart();
+            }
 
             // "...foobar" / "... foobar" / ". .. foobar"
             if (text.StartsWith("\"") && (text.StartsWith("\"..") || text.StartsWith("\". .") || text.StartsWith("\" ..") || text.StartsWith("\" . .")))
