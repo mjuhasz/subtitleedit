@@ -1605,6 +1605,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                     // Bar</i>
                     else if (firstLine.Contains(beginTag) && firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
                              !firstLine.Contains(beginTag + " ") &&
+                             !firstLine.Substring(0, firstLine.IndexOf(beginTag, StringComparison.Ordinal)).TrimEnd().EndsWith(":]", StringComparison.Ordinal) &&
                              Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
                     {
                         var firstLineClean = RemoveHtmlTags(firstLine);
