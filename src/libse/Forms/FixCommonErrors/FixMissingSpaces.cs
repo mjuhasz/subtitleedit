@@ -223,7 +223,7 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                                 end++;
                             }
                         }
-                        if (end < newText.Length - 2 && !(Environment.NewLine + @" <,.!?:;])♪♫¿").Contains(p.Text[end + 1]))
+                        if (end < newText.Length - 2 && !(Environment.NewLine + @" <,.!?:;])♪♫¿…").Contains(p.Text[end + 1]))
                         {
                             if (indexOfFontTag < 0 || end > newText.IndexOf('>', indexOfFontTag)) // font tags can contain "
                             {
@@ -380,6 +380,34 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                             newText = newText.Insert(j++, " ");
                         }
                         j++;
+                    }
+                    if (newText != p.Text && callbacks.AllowFix(p, fixAction))
+                    {
+                        missingSpaces++;
+                        var oldText = p.Text;
+                        p.Text = newText;
+                        callbacks.AddFixToListView(p, fixAction, oldText, p.Text);
+                    }
+                }
+
+                //fix missing spaces after SDH closing bracket "]" - "[Slim]How" to "[Slim] How"
+                index = p.Text.IndexOf(']');
+                if (index >= 0 && p.Text.Length > 2)
+                {
+                    var newText = p.Text;
+                    while (index != -1 && index < newText.Length - 1)
+                    {
+                        var nextChar = newText[index + 1];
+
+                        // Add space if next char is a letter, digit, music symbol, or opening HTML tag
+                        if (Utilities.AllLettersAndNumbers.Contains(nextChar) || "♪♫#".Contains(nextChar) ||
+                            (nextChar == '<' && index + 2 < newText.Length && newText[index + 2] != '/'))
+                        {
+                            newText = newText.Insert(index + 1, " ");
+                            index++;
+                        }
+
+                        index = newText.IndexOf(']', index + 1);
                     }
                     if (newText != p.Text && callbacks.AllowFix(p, fixAction))
                     {
