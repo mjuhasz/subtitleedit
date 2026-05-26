@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Nikse.SubtitleEdit.Core.Common
 {
@@ -72,62 +73,100 @@ namespace Nikse.SubtitleEdit.Core.Common
 
         public string FixActorsFromBeforeColon(Paragraph p, char ch, int? changeCasing, SKColor? color)
         {
+            var lines = p.Text.SplitToLines();
+
+            // Check if any line has a leading dialog hyphen on a non-actor line
+            // (after stripping positioning/italic tags). Purely actor lines (e.g. "Joe: ...")
+            // do not count — we only want lines that are dialog continuation without an actor.
+            var hasDialogHyphen = false;
+            if (lines.Count > 1)
+            {
+                foreach (var line in lines)
+                {
+                    var stripped = line.Trim();
+                    stripped = Regex.Replace(stripped, @"^\{\\an\d+\}", string.Empty);
+                    if (stripped.StartsWith("<i>", StringComparison.Ordinal))
+                        stripped = stripped.Substring(3);
+                    if (stripped.StartsWith("-", StringComparison.Ordinal) && stripped.IndexOf(ch) <= 0)
+                    {
+                        hasDialogHyphen = true;
+                        break;
+                    }
+                }
+            }
+
+            // Also treat as dialog when the second line has an actor
+            if (!hasDialogHyphen && lines.Count > 1)
+            {
+                var secondLine = lines[1].Trim();
+                secondLine = Regex.Replace(secondLine, @"^\{\\an\d+\}", string.Empty);
+                if (secondLine.StartsWith("<i>", StringComparison.Ordinal))
+                    secondLine = secondLine.Substring(3);
+                secondLine = secondLine.TrimStart(' ', '-');
+                if (secondLine.IndexOf(ch) > 0)
+                    hasDialogHyphen = true;
+            }
+
             var sb = new StringBuilder();
-            foreach (var line in p.Text.SplitToLines())
+            foreach (var line in lines)
             {
                 var s = line.Trim();
-                var startIdx = line.IndexOf(ch);
+
+                // Extract positioning tag prefix like {\an8}
+                var posTag = string.Empty;
+                var posMatch = Regex.Match(s, @"^\{\\an\d+\}");
+                if (posMatch.Success)
+                {
+                    posTag = posMatch.Value;
+                    s = s.Substring(posTag.Length);
+                }
+
+                // Extract italic wrapper
+                var hasItalic = s.StartsWith("<i>", StringComparison.Ordinal) && s.EndsWith("</i>", StringComparison.Ordinal);
+                if (hasItalic)
+                    s = s.Substring(3, s.Length - 7);
+
+                var startIdx = s.IndexOf(ch);
                 if (startIdx > 0)
                 {
                     var actor = s.Substring(0, startIdx).Trim(' ', '-', '"');
                     if (changeCasing.HasValue)
-                    {
                         actor = SetCasing(_subtitleFormat, changeCasing, actor);
-                    }
 
                     if (ToSquare)
-                    {
                         actor = "[" + actor + "]";
-                    }
                     else if (ToParentheses)
-                    {
                         actor = "(" + actor + ")";
-                    }
                     else if (ToColon)
-                    {
                         actor = actor + ":";
-                    }
-                    else if (ToActor)
-                    {
-                    }
 
                     if (color.HasValue && !ToActor)
-                    {
-                        SetColor(_subtitleFormat, color.Value, actor);
-                    }
+                        actor = SetColor(_subtitleFormat, color.Value, actor);
 
-                    if (ToSquare)
-                    {
-                        s = actor + " " + s.Substring(startIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToParentheses)
-                    {
-                        s = actor + " " + s.Substring(startIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToColon)
-                    {
-                        s = actor + " " + s.Substring(startIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToActor)
-                    {
-                        s = s.Substring(startIdx + 1);
-                    }
+                    var rest = s.Substring(startIdx + 1).TrimStart(' ');
+                    if (hasItalic)
+                        rest = "<i>" + rest + "</i>";
+
+                    var dialogHyphen = hasDialogHyphen ? "-" : string.Empty;
+
+                    if (ToActor)
+                        s = posTag + rest;
+                    else
+                        s = posTag + dialogHyphen + actor + " " + rest;
+                }
+                else
+                {
+                    var dialogHyphen = hasDialogHyphen && !s.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
+                    s = hasItalic ? posTag + dialogHyphen + "<i>" + s + "</i>" : posTag + dialogHyphen + s;
                 }
 
                 sb.AppendLine(s);
             }
 
-            return sb.ToString().Trim();
+            var result = sb.ToString().Trim();
+            if (!hasDialogHyphen && result.Contains("</i>" + Environment.NewLine + "<i>"))
+                result = result.Replace("</i>" + Environment.NewLine + "<i>", Environment.NewLine);
+            return result;
         }
 
         public ActorConverterResult FixActors(Paragraph paragraph, char start, char end, int? changeCasing, SKColor? color)
@@ -138,6 +177,51 @@ namespace Nikse.SubtitleEdit.Core.Common
             if (lines.Count > 2)
             {
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
+            }
+
+            // Handle multi-line bracket: open bracket on line 1, close bracket on line 2
+            if (lines.Count == 2)
+            {
+                var line1StartIdx = lines[0].IndexOf(start);
+                var line1EndIdx = lines[0].IndexOf(end);
+                var line2StartIdx = lines[1].IndexOf(start);
+                var line2EndIdx = lines[1].IndexOf(end);
+
+                if (line1StartIdx != -1 && line1EndIdx == -1 && line2EndIdx != -1 && line2StartIdx == -1)
+                {
+                    var contentLine1 = lines[0].Substring(line1StartIdx + 1);
+                    var contentLine2 = lines[1].Substring(0, line2EndIdx);
+                    var actor = (contentLine1.Trim() + " " + contentLine2.Trim()).Trim(' ', '-', '"');
+                    var selected = IsActor(actor);
+
+                    if (changeCasing.HasValue)
+                    {
+                        contentLine1 = SetCasing(_subtitleFormat, changeCasing, contentLine1);
+                        contentLine2 = SetCasing(_subtitleFormat, changeCasing, contentLine2);
+                    }
+
+                    if (ToSquare)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '[' + contentLine1;
+                        lines[1] = contentLine2 + ']' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToParentheses)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '(' + contentLine1;
+                        lines[1] = contentLine2 + ')' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToActor)
+                    {
+                        lines[0] = (lines[0].Substring(0, line1StartIdx) + lines[0].Substring(line1StartIdx + 1)).Trim();
+                        lines[1] = (lines[1].Substring(0, line2EndIdx) + lines[1].Substring(line2EndIdx + 1)).Trim();
+                        p.Text = (lines[0] + Environment.NewLine + lines[1]).Trim();
+                        p.Actor = actor;
+                        return new ActorConverterResult { Paragraph = p, Selected = selected };
+                    }
+
+                    p.Text = lines[0] + Environment.NewLine + lines[1];
+                    return new ActorConverterResult { Paragraph = p, Selected = selected };
+                }
             }
 
             var lineIdx = 0;

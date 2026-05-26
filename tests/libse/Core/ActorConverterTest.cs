@@ -159,7 +159,7 @@ public class ActorConverterTest
 
         var p = new Paragraph() { Text = "Joe: How are you?" + Environment.NewLine + "Jane: I'm fine." };
         var text = c.FixActorsFromBeforeColon(p, ':', null, null);
-        Assert.Equal("[Joe] How are you?" + Environment.NewLine + "[Jane] I'm fine.", text);
+        Assert.Equal("-[Joe] How are you?" + Environment.NewLine + "-[Jane] I'm fine.", text);
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public class ActorConverterTest
 
         var p = new Paragraph() { Text = "- Joe: How are you?" + Environment.NewLine + "- Jane: I'm fine." };
         var text = c.FixActorsFromBeforeColon(p, ':', null, null);
-        Assert.Equal("[Joe] How are you?" + Environment.NewLine + "[Jane] I'm fine.", text);
+        Assert.Equal("-[Joe] How are you?" + Environment.NewLine + "-[Jane] I'm fine.", text);
     }
 
     [Fact]
@@ -209,5 +209,127 @@ public class ActorConverterTest
         Assert.Equal(p.EndTime.TotalMilliseconds, result.NextParagraph.EndTime.TotalMilliseconds);
         Assert.Equal(p.Style, result.NextParagraph.Style);
         Assert.NotEqual(p.Id, result.NextParagraph.Id);
+    }
+
+    // Cluster 2: Colon-to-bracket with dialog hyphen on non-actor line
+
+    [Fact]
+    public void ColonToSquare_DialogHyphenOnSecondLine()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "JOHN: Come this way!" + Environment.NewLine + "-On my way." };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("-[JOHN] Come this way!" + Environment.NewLine + "-On my way.", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_DialogHyphenOnFirstLine()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "-Do you hear me?" + Environment.NewLine + "BETH: Loud and clear!" };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("-Do you hear me?" + Environment.NewLine + "-[BETH] Loud and clear!", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_ItalicWithDialogHyphen()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "<i>JOHN: Come this way!</i>" + Environment.NewLine + "-On my way." };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("-[JOHN] <i>Come this way!</i>" + Environment.NewLine + "-On my way.", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_PositioningTag()
+    {
+        // The position tag is placed before the dialog hyphen in the output
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "{\\an8}JOHN: Come this way!" + Environment.NewLine + "-On my way." };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("{\\an8}-[JOHN] Come this way!" + Environment.NewLine + "-On my way.", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_NoDialogHyphen_SingleLine()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "TIM: Roger that." };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("[TIM] Roger that.", text);
+    }
+
+    // Cluster 2: Multi-line bracket span (open on line 1, close on line 2)
+
+    [Fact]
+    public void MultiLineBracket_ToSquare()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "[Joe" + Environment.NewLine + "Smith] Hello." };
+        var result = c.FixActors(p, '[', ']', null, null);
+        Assert.Equal("[Joe" + Environment.NewLine + "Smith] Hello.", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void MultiLineBracket_ToActor()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToActor = true };
+        var p = new Paragraph { Text = "[Joe" + Environment.NewLine + "Smith] Hello." };
+        var result = c.FixActors(p, '[', ']', null, null);
+        Assert.Equal("Joe Smith", result.Paragraph.Actor);
+    }
+
+    [Fact]
+    public void ColonToSquare_OneActorOnSecondLine()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "Just point the camera." + Environment.NewLine + "TIM: Roger that." };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("-Just point the camera." + Environment.NewLine + "-[TIM] Roger that.", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_OneActorOnFirstLine_NoHyphens()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "VOGEL: Where did you" + Environment.NewLine + "last see him?" };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("[VOGEL] Where did you" + Environment.NewLine + "last see him?", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_ItalicOnSecondLineWithDialogHyphen()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "-Do you hear me?" + Environment.NewLine + "<i>BETH: Loud and clear!</i>" };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("-Do you hear me?" + Environment.NewLine + "-[BETH] <i>Loud and clear!</i>", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_PositioningTagAndItalic()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "{\\an8}<i>JOHN: Come this way!</i>" + Environment.NewLine + "-On my way." };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("{\\an8}-[JOHN] <i>Come this way!</i>" + Environment.NewLine + "-On my way.", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_AllItalicMultiLine()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "<i>JOHN: Come this way!</i>" + Environment.NewLine + "<i>And bring backup.</i>" };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("[JOHN] <i>Come this way!" + Environment.NewLine + "And bring backup.</i>", text);
+    }
+
+    [Fact]
+    public void ColonToSquare_BothActors_SecondLineItalic()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "MICHAEL: What's our depth?" + Environment.NewLine + "KITT: <i>impossible to tell.</i>" };
+        var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("-[MICHAEL] What's our depth?" + Environment.NewLine + "-[KITT] <i>impossible to tell.</i>", text);
     }
 }

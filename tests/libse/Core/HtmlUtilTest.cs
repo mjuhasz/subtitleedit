@@ -90,4 +90,98 @@ public class HtmlUtilTest
         Assert.Equal("<i>foobar?</i>" + Environment.NewLine + "<i>foobar?</i>", HtmlUtil.FixInvalidItalicTags(s));
     }
 
+    // Cluster 1: Dialog dash normalization — single line
+
+    [Fact]
+    public void DialogDash_SingleLine_DashInsideItalic()
+    {
+        Assert.Equal("- <i>Text</i>", HtmlUtil.FixInvalidItalicTags("<i>- Text</i>"));
+    }
+
+    [Fact]
+    public void DialogDash_SingleLine_DashOnlyInsideItalic()
+    {
+        Assert.Equal("- ", HtmlUtil.FixInvalidItalicTags("<i>-</i>"));
+    }
+
+    [Fact]
+    public void DialogDash_SingleLine_DashWithSpaceOnlyInsideItalic()
+    {
+        Assert.Equal("- ", HtmlUtil.FixInvalidItalicTags("<i>- </i>"));
+    }
+
+    [Fact]
+    public void DialogDash_SingleLine_DashNoSpaceInsideItalic()
+    {
+        Assert.Equal("- <i>Text</i>", HtmlUtil.FixInvalidItalicTags("<i>-Text</i>"));
+    }
+
+    // Cluster 1: Dialog dash normalization — multi-line
+
+    [Fact]
+    public void DialogDash_MultiLine_BothDashesInsideSpanningItalic()
+    {
+        var s = "<i>- Line one" + Environment.NewLine + "- Line two</i>";
+        var expected = "- <i>Line one</i>" + Environment.NewLine + "- <i>Line two</i>";
+        Assert.Equal(expected, HtmlUtil.FixInvalidItalicTags(s));
+    }
+
+    [Fact]
+    public void DialogDash_MultiLine_FirstLineDashInsideSpanningItalic()
+    {
+        // Dash on the first line is pulled before the italic; spanning italic is preserved
+        var s = "<i>- Line one" + Environment.NewLine + "Line two</i>";
+        var expected = "- <i>Line one" + Environment.NewLine + "Line two</i>";
+        Assert.Equal(expected, HtmlUtil.FixInvalidItalicTags(s));
+    }
+
+    // Cluster 3: Per-line italic merging (non-dialog only)
+
+    [Fact]
+    public void ItalicMerge_NonDialog_PerLineToSpanning()
+    {
+        var s = "<i>Line one</i>" + Environment.NewLine + "<i>Line two</i>";
+        var expected = "<i>Line one" + Environment.NewLine + "Line two</i>";
+        Assert.Equal(expected, HtmlUtil.FixInvalidItalicTags(s));
+    }
+
+    [Fact]
+    public void ItalicMerge_Dialog_PerLineNotMerged()
+    {
+        var s = "- <i>Line one</i>" + Environment.NewLine + "- <i>Line two</i>";
+        Assert.Equal(s, HtmlUtil.FixInvalidItalicTags(s));
+    }
+
+    [Fact]
+    public void ItalicMerge_SkipSdhBracketLabel()
+    {
+        // Bracket-only italic is stripped; since the first line loses its <i>,
+        // the two lines are no longer both italic and do not merge
+        var s = "<i>[König:]</i>" + Environment.NewLine + "<i>Dialog line</i>";
+        var expected = "[König:]" + Environment.NewLine + "<i>Dialog line</i>";
+        Assert.Equal(expected, HtmlUtil.FixInvalidItalicTags(s));
+    }
+
+    // Cluster 3: Move italic before bracket to after bracket
+
+    [Fact]
+    public void ItalicBeforeBracket_MovedAfterBracket()
+    {
+        Assert.Equal("[echoing] <i>You killed two people.</i>", HtmlUtil.FixInvalidItalicTags("<i>[echoing] You killed two people.</i>"));
+    }
+
+    [Fact]
+    public void ItalicInsideBracket_MovedAfterBracket()
+    {
+        Assert.Equal("[operator] <i>Yes, sir</i>", HtmlUtil.FixInvalidItalicTags("[<i>operator] Yes, sir</i>"));
+    }
+
+    // Cluster 3: Remove italic wrapping bracket-only content
+
+    [Fact]
+    public void ItalicBracketOnly_ItalicRemoved()
+    {
+        Assert.Equal("[repeating message in French]", HtmlUtil.FixInvalidItalicTags("<i>[repeating message in French]</i>"));
+    }
+
 }
