@@ -596,6 +596,7 @@ public class SettingsPage : UserControl
             MakeCheckboxSetting(Se.Language.Options.Settings.GridFocusTextboxAfterInsertNew, nameof(_vm.GridFocusTextboxAfterInsertNew)),
             MakeCheckboxSetting(Se.Language.Options.Settings.TextToSpeechPromptMergeContinuationLines, nameof(_vm.TextToSpeechPromptMergeContinuationLines)),
             MakeCheckboxSetting(Se.Language.Options.Settings.SpeechToTextPromptMergeContinuationLines, nameof(_vm.SpeechToTextPromptMergeContinuationLines)),
+            MakeCheckboxSetting(Se.Language.Options.Settings.FixCommonErrorsSkipStep1, nameof(_vm.FixCommonErrorsSkipStep1)),
         ]));
 
         sections.Add(new SettingsSection(Se.Language.General.Appearance,
