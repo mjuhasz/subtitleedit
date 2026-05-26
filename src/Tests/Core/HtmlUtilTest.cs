@@ -447,6 +447,21 @@ namespace Tests.Core
         }
 
         [TestMethod]
+        public void FixInvalidItalicTags_ItalicBeforeBracketWithDialogHyphen()
+        {
+            // - [man whistles]
+            // - <i>[gasps] I object!</i>
+            // becomes:
+            // - [man whistles]
+            // - [gasps] <i>I object!</i>
+            string s = "- [man whistles]" + Environment.NewLine +
+                       "- <i>[gasps] I object!</i>";
+            Assert.AreEqual("- [man whistles]" + Environment.NewLine +
+                            "- [gasps] <i>I object!</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
+        [TestMethod]
         public void FixInvalidItalicTags_TrailingItalicMovedToNextLine()
         {
             // [Bourne] <i>

@@ -775,42 +775,44 @@ namespace Nikse.SubtitleEdit.Core.Common
             for (var i = 0; i < italicBracketLines.Count; i++)
             {
                 var line = italicBracketLines[i];
+                var linePrefix = line.StartsWith("- ", StringComparison.Ordinal) ? "- " : string.Empty;
+                var lineContent = linePrefix.Length > 0 ? line.Substring(linePrefix.Length) : line;
                 foreach (var bracketOpen in new[] { '[', '(' })
                 {
                     var bracketClose = bracketOpen == '[' ? ']' : ')';
                     var prefix = beginTag + bracketOpen;
-                    if (!line.StartsWith(prefix, StringComparison.Ordinal))
+                    if (!lineContent.StartsWith(prefix, StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    var closeIdx = line.IndexOf(bracketClose, prefix.Length);
+                    var closeIdx = lineContent.IndexOf(bracketClose, prefix.Length);
                     if (closeIdx < 0)
                     {
                         continue;
                     }
 
                     // Check there's text content after the bracket close (not just </i> or empty)
-                    var afterBracket = line.Substring(closeIdx + 1).TrimStart();
+                    var afterBracket = lineContent.Substring(closeIdx + 1).TrimStart();
                     if (afterBracket.Length == 0 || afterBracket == endTag)
                     {
                         break; // no text after bracket - let the next block handle it
                     }
 
                     // Remove <i> from before bracket
-                    line = line.Substring(beginTag.Length);
+                    lineContent = lineContent.Substring(beginTag.Length);
                     closeIdx -= beginTag.Length;
 
                     // Insert <i> after bracket close + space
                     var insertPos = closeIdx + 1;
-                    if (insertPos < line.Length && line[insertPos] == ' ')
+                    if (insertPos < lineContent.Length && lineContent[insertPos] == ' ')
                     {
                         insertPos++;
                     }
 
-                    line = line.Insert(insertPos, beginTag);
+                    lineContent = lineContent.Insert(insertPos, beginTag);
 
-                    italicBracketLines[i] = line;
+                    italicBracketLines[i] = linePrefix + lineContent;
                     italicBracketChanged = true;
                     break;
                 }
