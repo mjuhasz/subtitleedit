@@ -282,6 +282,24 @@ namespace Tests.Core
         }
 
         [TestMethod]
+        public void ColonToSquare_AllItalicMultiLine()
+        {
+            // <i>JOHN: Come this way!</i>
+            // <i>And bring backup.</i>
+            // becomes:
+            // [JOHN] <i>Come this way!
+            // And bring backup.</i>
+            var c = new ActorConverter(new SubRip(), "en")
+            {
+                ToSquare = true,
+            };
+
+            var p = new Paragraph() { Text = "<i>JOHN: Come this way!</i>" + Environment.NewLine + "<i>And bring backup.</i>" };
+            var text = c.FixActorsFromBeforeColon(p, ':', null, null);
+            Assert.AreEqual("[JOHN] <i>Come this way!" + Environment.NewLine + "And bring backup.</i>", text);
+        }
+
+        [TestMethod]
         public void SquareToParenthesesDialog()
         {
             var c = new ActorConverter(new SubRip(), "en")

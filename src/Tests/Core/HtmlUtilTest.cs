@@ -506,5 +506,20 @@ namespace Tests.Core
                             HtmlUtil.FixInvalidItalicTags(s));
         }
 
+        [TestMethod]
+        public void FixInvalidItalicTags_MergeActorPrefixItalics()
+        {
+            // [Bourne] <i>I need someone I know.</i>
+            // <i>Bring me in.</i>
+            // becomes:
+            // [Bourne] <i>I need someone I know.
+            // Bring me in.</i>
+            string s = "[Bourne] <i>I need someone I know.</i>" + Environment.NewLine +
+                       "<i>Bring me in.</i>";
+            Assert.AreEqual("[Bourne] <i>I need someone I know." + Environment.NewLine +
+                            "Bring me in.</i>",
+                            HtmlUtil.FixInvalidItalicTags(s));
+        }
+
     }
 }

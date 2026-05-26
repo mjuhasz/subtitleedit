@@ -1597,6 +1597,25 @@ namespace Nikse.SubtitleEdit.Core.Common
                             text = beginTag + text + endTag;
                         }
                     }
+                    // Also merge when first line has content before <i>
+                    // [Actor] <i>Foo</i>
+                    // <i>Bar</i>
+                    // becomes:
+                    // [Actor] <i>Foo
+                    // Bar</i>
+                    else if (firstLine.Contains(beginTag) && firstLine.EndsWith(endTag, StringComparison.Ordinal) &&
+                             Utilities.StartsAndEndsWithTag(secondLine, beginTag, endTag))
+                    {
+                        var firstLineClean = RemoveHtmlTags(firstLine);
+                        var secondLineClean = RemoveHtmlTags(secondLine);
+                        if (!firstLineClean.TrimStart().StartsWith("-", StringComparison.Ordinal) &&
+                            !secondLineClean.TrimStart().StartsWith("-", StringComparison.Ordinal))
+                        {
+                            text = firstLine.Substring(0, firstLine.Length - endTag.Length) +
+                                   Environment.NewLine +
+                                   secondLine.Substring(beginTag.Length);
+                        }
+                    }
                 }
 
                 //FALCONE:<i> I didn't think</i><br /><i>it was going to be you,</i>

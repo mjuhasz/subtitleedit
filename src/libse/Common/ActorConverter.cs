@@ -196,7 +196,12 @@ namespace Nikse.SubtitleEdit.Core.Common
                 sb.AppendLine(s);
             }
 
-            return sb.ToString().Trim();
+            var result = sb.ToString().Trim();
+            if (!hasDialogHyphen && result.Contains("</i>" + Environment.NewLine + "<i>"))
+            {
+                result = result.Replace("</i>" + Environment.NewLine + "<i>", Environment.NewLine);
+            }
+            return result;
         }
 
         public ActorConverterResult FixActors(Paragraph paragraph, char start, char end, int? changeCasing, Color? color)
