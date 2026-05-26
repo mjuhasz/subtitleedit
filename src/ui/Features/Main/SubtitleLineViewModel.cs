@@ -248,11 +248,6 @@ public partial class SubtitleLineViewModel : ObservableObject
         {
             if (Se.Settings.General.ColorTextTooLong && !string.IsNullOrEmpty(Text))
             {
-                if (CharactersPerSecond > Se.Settings.General.SubtitleMaximumCharactersPerSeconds)
-                {
-                    return _errorBrush;
-                }
-
                 var text = HtmlUtil.RemoveHtmlTags(Text, true);
                 var lines = text.SplitToLines();
                 foreach (var line in lines)
