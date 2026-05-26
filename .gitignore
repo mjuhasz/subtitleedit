@@ -415,3 +415,8 @@ FodyWeavers.xsd
 
 # macOS Finder metadata
 .DS_Store
+CLAUDE.md
+AGENTS.md
+
+# macOS DMG build output
+*.dmg
