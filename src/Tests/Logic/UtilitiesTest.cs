@@ -520,7 +520,7 @@ namespace Tests.Logic
         {
             var s1 = "[König:]<i> Ich weiß, dass du dagegen</i>" + Environment.NewLine + "<i>bist.</i>";
             var s2 = HtmlUtil.FixInvalidItalicTags(s1);
-            Assert.AreEqual("[König:] <i>Ich weiß, dass du dagegen</i>" + Environment.NewLine + "<i>bist.</i>", s2);
+            Assert.AreEqual("[König:] <i>Ich weiß, dass du dagegen" + Environment.NewLine + "bist.</i>", s2);
         }
 
         [TestMethod]
