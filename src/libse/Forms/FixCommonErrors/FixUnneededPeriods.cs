@@ -53,6 +53,8 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                         {
                             procText = procText.Replace("….", "…");
                         }
+
+                        procText = procText.Replace("...", "…");
                     }
 
                     var l = callbacks.Language;
