@@ -79,9 +79,17 @@ public static partial class InitListViewAndEditBox
             RowDefinitions = new RowDefinitions("*,Auto"),
         };
 
+        // Row height must be fixed and uniform. Avalonia DataGrid's row virtualizer
+        // requires all rows to be the same height; variable-height rows (e.g. 1-line vs
+        // 2-line subtitle text) cause the scroll position estimate to diverge on every
+        // layout pass, producing a visible oscillation when the user scrolls.
+        // Accommodate two lines of text plus cell padding (2 px top + 2 px bottom).
+        var subtitleGridRowHeight = Math.Max(40, Se.Settings.Appearance.SubtitleGridFontSize * 3.2);
+
         vm.SubtitleGrid = new DataGrid
         {
             Height = double.NaN,
+            RowHeight = subtitleGridRowHeight,
             Margin = new Thickness(Se.Settings.Appearance.GridCompactMode ? 0 : 2),
             ItemsSource = vm.Subtitles,
             CanUserSortColumns = false,
