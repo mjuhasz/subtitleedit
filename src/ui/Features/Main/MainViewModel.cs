@@ -12388,12 +12388,13 @@ public partial class MainViewModel :
                 return;
             }
 
-            // Use the row's actual rendered Y inside the rows presenter — this is
-            // accurate regardless of variable row heights. The delta is exactly how
-            // much we need to shift the scrollbar to center the row.
+            // Compute how far the row is from the vertical center of the viewport.
+            // row.Bounds.Y is in pixels, but the DataGrid's vertical scrollbar is
+            // row-index based (first-visible-row index), so we must divide by the
+            // row height to convert the pixel offset to scrollbar units.
             var desiredY = (rowsPresenter.Bounds.Height - row.Bounds.Height) / 2.0;
-            var delta = row.Bounds.Y - desiredY;
-            if (Math.Abs(delta) < 1)
+            var delta = (row.Bounds.Y - desiredY) / row.Bounds.Height;  // pixels → rows
+            if (Math.Abs(delta) < 0.5)
             {
                 return;
             }
