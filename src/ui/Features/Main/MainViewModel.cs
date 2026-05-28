@@ -279,6 +279,9 @@ public partial class MainViewModel :
     public TextBlock StatusTextLeftLabel { get; set; }
     public MenuItem MenuReopen { get; set; }
     public MenuItem MenuPlugins { get; set; }
+    public NativeMenuItem? NativeMenuReopen { get; set; }
+    public NativeMenuItem? NativeMenuPlugins { get; set; }
+    public NativeMenuItem? NativeMenuAudioTracks { get; set; }
     public AudioVisualizer? AudioVisualizer { get; set; }
 
     VideoPlayerUndockedViewModel? _videoPlayerUndockedViewModel;
@@ -1821,6 +1824,8 @@ public partial class MainViewModel :
     {
         Se.Settings.File.RecentFiles.Clear();
         InitMenu.UpdateRecentFiles(this);
+        if (OperatingSystem.IsMacOS())
+            Layout.InitNativeMacMenu.UpdateRecentFiles(this);
         _shortcutManager.ClearKeys();
     }
 
@@ -4793,6 +4798,8 @@ public partial class MainViewModel :
 
         await ShowDialogAsync<PluginManagerWindow, PluginManagerViewModel>(vm => vm.Initialize());
         Layout.InitMenu.UpdatePluginsMenu(this);
+        if (OperatingSystem.IsMacOS())
+            Layout.InitNativeMacMenu.UpdatePluginsMenu(this);
     }
 
     [RelayCommand]
@@ -7762,6 +7769,8 @@ public partial class MainViewModel :
     {
         await ShowDialogAsync<ShortcutsWindow, ShortcutsViewModel>(vm => { vm.LoadShortCuts(this); });
         ReloadShortcuts();
+        if (OperatingSystem.IsMacOS())
+            Layout.InitNativeMacMenu.UpdateShortcuts(this);
     }
 
     [RelayCommand]
@@ -8197,6 +8206,8 @@ public partial class MainViewModel :
 
         // reload current layout
         InitMenu.Make(this);
+        if (OperatingSystem.IsMacOS() && Avalonia.Application.Current is { } app)
+            Layout.InitNativeMacMenu.Make(app, this);
         SetLayout(Se.Settings.General.LayoutNumber);
 
         if (Toolbar is Border toolbarBorder)
@@ -14441,6 +14452,8 @@ public partial class MainViewModel :
         if (updateMenu)
         {
             InitMenu.UpdateRecentFiles(this);
+            if (OperatingSystem.IsMacOS())
+                Layout.InitNativeMacMenu.UpdateRecentFiles(this);
         }
     }
 
@@ -15060,6 +15073,8 @@ public partial class MainViewModel :
                     {
                         IsAudioTracksVisible = false;
                         AudioTraksMenuItem.Items.Clear();
+                        if (OperatingSystem.IsMacOS())
+                            Layout.InitNativeMacMenu.UpdateAudioTracksMenu(this, [], null);
                     });
                     return;
                 }
@@ -15111,6 +15126,8 @@ public partial class MainViewModel :
                     }
 
                     IsAudioTracksVisible = AudioTraksMenuItem.Items.Count > 1;
+                    if (OperatingSystem.IsMacOS())
+                        Layout.InitNativeMacMenu.UpdateAudioTracksMenu(this, audioTracks, _audioTrack);
                 });
             }
         }
