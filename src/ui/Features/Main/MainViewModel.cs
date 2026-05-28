@@ -8207,7 +8207,7 @@ public partial class MainViewModel :
         // reload current layout
         InitMenu.Make(this);
         if (OperatingSystem.IsMacOS())
-            Layout.InitNativeMacMenu.Sync(this);
+            Layout.InitNativeMacMenu.Rebuild(this);
         SetLayout(Se.Settings.General.LayoutNumber);
 
         if (Toolbar is Border toolbarBorder)
