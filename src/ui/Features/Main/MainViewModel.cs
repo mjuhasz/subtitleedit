@@ -8206,8 +8206,8 @@ public partial class MainViewModel :
 
         // reload current layout
         InitMenu.Make(this);
-        if (OperatingSystem.IsMacOS() && Avalonia.Application.Current is { } app)
-            Layout.InitNativeMacMenu.Sync(app, this);
+        if (OperatingSystem.IsMacOS())
+            Layout.InitNativeMacMenu.Sync(this);
         SetLayout(Se.Settings.General.LayoutNumber);
 
         if (Toolbar is Border toolbarBorder)
@@ -14628,8 +14628,8 @@ public partial class MainViewModel :
 
     internal void OnLoaded()
     {
-        if (OperatingSystem.IsMacOS() && Avalonia.Application.Current is { } macApp)
-            Layout.InitNativeMacMenu.Sync(macApp, this);
+        if (OperatingSystem.IsMacOS())
+            Layout.InitNativeMacMenu.Sync(this);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && string.IsNullOrEmpty(Se.Settings.General.LibMpvPath))
         {
