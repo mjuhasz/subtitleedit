@@ -58,8 +58,15 @@ public class PromptUnknownWordWindow : Window
             DataContext = vm,
         };
         image.Bind(Image.SourceProperty, new Binding(nameof(vm.Bitmap)));
+        var imageBorder = new Border
+        {
+            Child = image,
+            Background = UiUtil.GetCheckerboardBrush(),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
 
-        grid.Add(image, 0, 0, 1, 2);
+        grid.Add(imageBorder, 0, 0, 1, 2);
         grid.Add(MakeWholeTextView(vm), 1, 0, 1, 2);
         grid.Add(MakeWordView(vm), 2);
         grid.Add(MakeWordSuggestionsView(vm), 2, 1);

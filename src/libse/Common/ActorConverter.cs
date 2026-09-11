@@ -4,6 +4,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Nikse.SubtitleEdit.Core.Common
 {
@@ -95,6 +96,32 @@ namespace Nikse.SubtitleEdit.Core.Common
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
             }
 
+            // Custom 4.0.15 behavior (inline formats only): a leading dialog hyphen is put on every
+            // converted line when the paragraph reads as dialog - a non-actor line already opens with
+            // '-' (after stripping {\an8} and <i>), or the second line names its own speaker.
+            var hasDialogHyphen = false;
+            if (!ToActor && lines.Count > 1)
+            {
+                foreach (var line in lines)
+                {
+                    var stripped = StripPositionAndItalic(line.Trim());
+                    if (stripped.StartsWith("-", StringComparison.Ordinal) && stripped.IndexOf(ch) <= 0)
+                    {
+                        hasDialogHyphen = true;
+                        break;
+                    }
+                }
+
+                if (!hasDialogHyphen)
+                {
+                    var secondLine = StripPositionAndItalic(lines[1].Trim()).TrimStart(' ', '-');
+                    if (secondLine.IndexOf(ch) > 0)
+                    {
+                        hasDialogHyphen = true;
+                    }
+                }
+            }
+
             Paragraph nextParagraph = null;
             var selectFix = true;
             var actorAssigned = false;
@@ -103,6 +130,23 @@ namespace Nikse.SubtitleEdit.Core.Common
             {
                 // index into the trimmed line - leading whitespace goes with the actor it precedes
                 var s = line.Trim();
+
+                // A positioning tag like {\an8} rides in front of the whole line, ahead of the dialog hyphen.
+                var posTag = string.Empty;
+                var posMatch = Regex.Match(s, @"^\{\\an\d+\}");
+                if (posMatch.Success)
+                {
+                    posTag = posMatch.Value;
+                    s = s.Substring(posTag.Length);
+                }
+
+                // An <i>...</i> wrapper around the whole line is unwrapped now and put back around the text.
+                var hasItalic = s.StartsWith("<i>", StringComparison.Ordinal) && s.EndsWith("</i>", StringComparison.Ordinal);
+                if (hasItalic)
+                {
+                    s = s.Substring(3, s.Length - 7);
+                }
+
                 var startIdx = s.IndexOf(ch);
                 if (startIdx <= 0)
                 {
@@ -110,12 +154,12 @@ namespace Nikse.SubtitleEdit.Core.Common
                     if (nextParagraph != null)
                     {
                         nextParagraph.Text = (nextParagraph.Text + Environment.NewLine + s).Trim();
-                    }
-                    else
-                    {
-                        textLines.Add(s);
+                        continue;
                     }
 
+                    var keptHyphen = hasDialogHyphen && !s.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
+                    var kept = hasItalic ? "<i>" + s + "</i>" : s;
+                    textLines.Add(posTag + keptHyphen + kept);
                     continue;
                 }
 
@@ -148,14 +192,20 @@ namespace Nikse.SubtitleEdit.Core.Common
                 var text = s.Substring(startIdx + 1).TrimStart(' ');
                 if (!ToActor)
                 {
-                    textLines.Add(actor + " " + text);
+                    if (hasItalic)
+                    {
+                        text = "<i>" + text + "</i>";
+                    }
+
+                    var dialogHyphen = hasDialogHyphen ? "-" : string.Empty;
+                    textLines.Add(posTag + dialogHyphen + actor + " " + text);
                 }
                 else if (!actorAssigned)
                 {
                     // The first name found goes in the actor column...
                     p.Actor = actor;
                     actorAssigned = true;
-                    textLines.Add(text);
+                    textLines.Add(posTag + text);
                 }
                 else
                 {
@@ -164,7 +214,14 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
             }
 
-            p.Text = string.Join(Environment.NewLine, textLines).Trim();
+            var joined = string.Join(Environment.NewLine, textLines).Trim();
+            if (!ToActor && !hasDialogHyphen)
+            {
+                // Per-line <i>...</i>\n<i>...</i> collapses into one spanning italic once no dash splits them.
+                joined = joined.Replace("</i>" + Environment.NewLine + "<i>", Environment.NewLine);
+            }
+
+            p.Text = joined;
 
             return new ActorConverterResult
             {
@@ -172,6 +229,17 @@ namespace Nikse.SubtitleEdit.Core.Common
                 NextParagraph = nextParagraph,
                 Selected = selectFix,
             };
+        }
+
+        private static string StripPositionAndItalic(string s)
+        {
+            s = Regex.Replace(s, @"^\{\\an\d+\}", string.Empty);
+            if (s.StartsWith("<i>", StringComparison.Ordinal))
+            {
+                s = s.Substring(3);
+            }
+
+            return s;
         }
 
         private static bool HasActor(string line, char ch)
@@ -224,6 +292,51 @@ namespace Nikse.SubtitleEdit.Core.Common
             if (lines.Count > 2)
             {
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
+            }
+
+            // Handle multi-line bracket: open bracket on line 1, close bracket on line 2
+            if (lines.Count == 2)
+            {
+                var line1StartIdx = lines[0].IndexOf(start);
+                var line1EndIdx = lines[0].IndexOf(end);
+                var line2StartIdx = lines[1].IndexOf(start);
+                var line2EndIdx = lines[1].IndexOf(end);
+
+                if (line1StartIdx != -1 && line1EndIdx == -1 && line2EndIdx != -1 && line2StartIdx == -1)
+                {
+                    var contentLine1 = lines[0].Substring(line1StartIdx + 1);
+                    var contentLine2 = lines[1].Substring(0, line2EndIdx);
+                    var actor = (contentLine1.Trim() + " " + contentLine2.Trim()).Trim(' ', '-', '"');
+                    var selected = IsActor(actor);
+
+                    if (changeCasing.HasValue)
+                    {
+                        contentLine1 = SetCasing(_subtitleFormat, changeCasing, contentLine1);
+                        contentLine2 = SetCasing(_subtitleFormat, changeCasing, contentLine2);
+                    }
+
+                    if (ToSquare)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '[' + contentLine1;
+                        lines[1] = contentLine2 + ']' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToParentheses)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '(' + contentLine1;
+                        lines[1] = contentLine2 + ')' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToActor)
+                    {
+                        lines[0] = (lines[0].Substring(0, line1StartIdx) + lines[0].Substring(line1StartIdx + 1)).Trim();
+                        lines[1] = (lines[1].Substring(0, line2EndIdx) + lines[1].Substring(line2EndIdx + 1)).Trim();
+                        p.Text = (lines[0] + Environment.NewLine + lines[1]).Trim();
+                        p.Actor = actor;
+                        return new ActorConverterResult { Paragraph = p, Selected = selected };
+                    }
+
+                    p.Text = lines[0] + Environment.NewLine + lines[1];
+                    return new ActorConverterResult { Paragraph = p, Selected = selected };
+                }
             }
 
             var lineIdx = 0;

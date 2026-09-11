@@ -102,8 +102,15 @@ public class NOcrInspectWindow : Window
             MaxHeight = 200,
         };
 
+        var imageBorder = new Border
+        {
+            Child = image,
+            Background = UiUtil.GetCheckerboardBrush(),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
+        };
         grid.Add(vm.PanelLines, 0);
-        grid.Add(image, 0, 1, 1);
+        grid.Add(imageBorder, 0, 1, 1);
 
         return UiUtil.MakeBorderForControl(grid).WithMarginBottom(10);
     }

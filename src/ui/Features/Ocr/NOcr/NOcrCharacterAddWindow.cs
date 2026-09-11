@@ -60,7 +60,14 @@ public class NOcrCharacterAddWindow : Window
         var buttonCancel = UiUtil.MakeButtonCancel(vm.AbortCommand).WithBindIsVisible(nameof(vm.ShowCancel));
         var buttonBar = UiUtil.MakeButtonBar(buttonOk, buttonInspectAdditions, buttonUseOnce, buttonSkip, buttonAbort, buttonCancel);
 
-        grid.Add(image, 0, 0);
+        var imageBorder = new Border
+        {
+            Child = image,
+            Background = UiUtil.GetCheckerboardBrush(),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
+        };
+        grid.Add(imageBorder, 0, 0);
         grid.Add(controlsView, 1, 0);
         grid.Add(buttonBar, 2, 0);
 
