@@ -1161,12 +1161,15 @@ public class Se
 
     public static void LogError(Exception exception)
     {
-        LogError(exception.Message + Environment.NewLine + exception.StackTrace);
+        // ToString() (rather than just Message + StackTrace) walks InnerException too - critical
+        // for wrapper exceptions like TargetInvocationException, whose own message ("Exception has
+        // been thrown by the target of an invocation.") hides the actual cause.
+        LogError(exception.ToString());
     }
 
     public static void LogError(Exception exception, string message)
     {
-        LogError(exception.Message + Environment.NewLine + message + Environment.NewLine + exception.StackTrace);
+        LogError(message + Environment.NewLine + exception);
     }
 
     public static void LogError(string error)

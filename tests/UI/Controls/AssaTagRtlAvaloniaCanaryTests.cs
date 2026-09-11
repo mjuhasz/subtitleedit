@@ -76,6 +76,9 @@ public class AssaTagRtlAvaloniaCanaryTests : IDisposable
     public void AssaTagBackslashStillRendersDisplacedInRtlLines()
     {
         var styles = (Styles)AvaloniaXamlLoader.Load(new Uri("avares://SubtitleEdit/Styles.axaml"));
+        // The syntaxHighlighting TextBox template lives in its own file/StyleInclude (kept out of
+        // Styles.axaml - see SyntaxHighlightingTextBoxStyles.axaml for why), so it must be loaded too.
+        var syntaxHighlightingStyles = (Styles)AvaloniaXamlLoader.Load(new Uri("avares://SubtitleEdit/SyntaxHighlightingTextBoxStyles.axaml"));
         var textBox = new SyntaxHighlightingTextBox
         {
             Text = "{\\an8}هذا",
@@ -85,6 +88,7 @@ public class AssaTagRtlAvaloniaCanaryTests : IDisposable
         var window = new Window { Content = textBox, Width = 400, Height = 120 };
         _windows.Add(window);
         window.Styles.Add(styles);
+        window.Styles.Add(syntaxHighlightingStyles);
         window.Show();
         textBox.ApplyTemplate();
         window.UpdateLayout();

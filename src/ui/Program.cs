@@ -352,6 +352,16 @@ namespace Nikse.SubtitleEdit
                     Source = new Uri("avares://SubtitleEdit/Styles.axaml")
                 });
 
+                // Kept as a separate StyleInclude rather than folded into Styles.axaml: combined
+                // into one file, the compiled XAML "Populate" method covering both trips a .NET
+                // reflection-invoke bug ("Field token out of range" TypeLoadException) on startup
+                // in Release builds. Isolating it keeps each generated Populate method small enough
+                // to invoke without hitting it (see error-log reports from 09/11/2026).
+                b.Instance.Styles.Add(new StyleInclude(new Uri("avares://SubtitleEdit/SyntaxHighlightingTextBoxStyles.axaml", UriKind.Absolute))
+                {
+                    Source = new Uri("avares://SubtitleEdit/SyntaxHighlightingTextBoxStyles.axaml")
+                });
+
                 // The Fluent theme makes every GridSplitter focusable (keyboard resize), so screen
                 // readers land on each splitter while tabbing; without a name they are announced as
                 // a bare generic Avalonia control. One app-level style names them all (#12087).
