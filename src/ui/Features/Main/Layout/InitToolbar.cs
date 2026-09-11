@@ -31,16 +31,8 @@ public static class InitToolbar
         };
     }
 
-    private static string _imagePath = string.Empty;
-
-    private static void EnsureImagePath()
-    {
-        _imagePath = UiTheme.ImageFolder;
-    }
-
     private static Grid CreateToolbar(MainViewModel vm)
     {
-        EnsureImagePath();
 
         var stackPanelLeft = new StackPanel
         {
@@ -62,7 +54,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("New"),
                 Command = vm.CommandFileNewCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.NewHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.NewHint, shortcuts, nameof(vm.CommandFileNewCommand)),
             });
@@ -75,7 +67,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Open"),
                 Command = vm.CommandFileOpenCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.OpenHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.OpenHint, shortcuts, nameof(vm.CommandFileOpenCommand)),
             });
@@ -88,7 +80,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("OpenVideo"),
                 Command = vm.CommandVideoOpenCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.OpenVideoHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.OpenVideoHint, shortcuts, nameof(vm.CommandVideoOpenCommand)),
             });
@@ -101,7 +93,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Save"),
                 Command = vm.CommandFileSaveCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.SaveHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SaveHint, shortcuts, nameof(vm.CommandFileSaveCommand)),
             });
@@ -114,7 +106,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("SaveAs"),
                 Command = vm.CommandFileSaveAsCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.SaveAsHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SaveAsHint, shortcuts, nameof(vm.CommandFileSaveAsCommand)),
             });
@@ -133,7 +125,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Find"),
                 Command = vm.ShowFindCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.FindHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.FindHint, shortcuts, nameof(vm.ShowFindCommand)),
             });
@@ -146,7 +138,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Replace"),
                 Command = vm.ShowReplaceCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.ReplaceHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.ReplaceHint, shortcuts, nameof(vm.ShowReplaceCommand)),
             });
@@ -179,7 +171,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("SpellCheck"),
                 Command = vm.ShowSpellCheckCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.SpellCheckHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SpellCheckHint, shortcuts, nameof(vm.ShowSpellCheckCommand)),
             });
@@ -192,7 +184,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("FixCommonErrors"),
                 Command = vm.ShowToolsFixCommonErrorsCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.FixCommonErrorsHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.FixCommonErrorsHint, shortcuts, nameof(vm.ShowToolsFixCommonErrorsCommand)),
             });
@@ -205,7 +197,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("RemoveTextForHi"),
                 Command = vm.ShowToolsRemoveTextForHearingImpairedCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.RemoveTextForHiHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.RemoveTextForHiHint, shortcuts, nameof(vm.ShowToolsRemoveTextForHearingImpairedCommand)),
             });
@@ -218,7 +210,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("VisualSync"),
                 Command = vm.ShowVisualSyncCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.VisualSyncHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.VisualSyncHint, shortcuts, nameof(vm.ShowVisualSyncCommand)),
             });
@@ -244,7 +236,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("BeautifyTimeCodes"),
                 Command = vm.ShowBeautifyTimeCodesCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.BeautifyTimeCodesHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.BeautifyTimeCodesHint, shortcuts, nameof(vm.ShowBeautifyTimeCodesCommand)),
             });
@@ -257,7 +249,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("BurnIn"),
                 Command = vm.ShowVideoBurnInCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.BurnInHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.BurnInHint, shortcuts, nameof(vm.ShowVideoBurnInCommand)),
             });
@@ -297,7 +289,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Settings"),
                 Command = vm.CommandShowSettingsCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.SettingsHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SettingsHint, shortcuts, nameof(vm.CommandShowSettingsCommand)),
             });
@@ -310,7 +302,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Layout"),
                 Command = vm.CommandShowLayoutCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.LayoutHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.LayoutHint, shortcuts, nameof(vm.CommandShowLayoutCommand)),
             });
@@ -342,7 +334,7 @@ public static class InitToolbar
             {
                 Content = MakeImage("Help"),
                 Command = vm.ShowHelpCommand,
-                Background = Brushes.Transparent,
+                Classes = { "toolbar" },
                 [AutomationProperties.NameProperty] = languageHints.HelpHint,
                 [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.HelpHint, shortcuts, nameof(vm.ShowHelpCommand)),
             });
@@ -365,7 +357,7 @@ public static class InitToolbar
                 var assaSeparator = MakeSeparator();
                 stackPanelLeft.Children.Add(assaSeparator);
                 assaSeparator.DataContext = vm;
-                assaSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatAssa)) { Mode = BindingMode.TwoWay });
+                assaSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatAssa)) { Mode = BindingMode.OneWay });
             }
 
             if (showSsaIcons)
@@ -373,7 +365,7 @@ public static class InitToolbar
                 var ssaSeparator = MakeSeparator();
                 stackPanelLeft.Children.Add(ssaSeparator);
                 ssaSeparator.DataContext = vm;
-                ssaSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatSsa)) { Mode = BindingMode.TwoWay });
+                ssaSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatSsa)) { Mode = BindingMode.OneWay });
             }
 
             if (showWebVttIcons)
@@ -381,7 +373,7 @@ public static class InitToolbar
                 var webVttSeparator = MakeSeparator();
                 stackPanelLeft.Children.Add(webVttSeparator);
                 webVttSeparator.DataContext = vm;
-                webVttSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatWebVtt)) { Mode = BindingMode.TwoWay });
+                webVttSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatWebVtt)) { Mode = BindingMode.OneWay });
             }
 
             isLastSeparator = true;
@@ -665,15 +657,10 @@ public static class InitToolbar
     }
 
     // Public so other windows (e.g. the spell-check completed dialog) can reuse the exact same
-    // themed/recolored toolbar icons. EnsureImagePath keeps it usable before the toolbar is built.
+    // themed/recolored toolbar icons using the current theme folder.
     public static Image MakeImage(string image)
     {
-        if (string.IsNullOrEmpty(_imagePath))
-        {
-            EnsureImagePath();
-        }
-
-        var filePath = Path.Combine(_imagePath, image + ".png");
+        var filePath = Path.Combine(UiTheme.ImageFolder, image + ".png");
         try
         {
             return new Image

@@ -73,6 +73,7 @@ public class LanguageSettings
     public string ShowGridLines { get; set; }
     public string ShowHorizontalLineAboveToolbar { get; set; }
     public string BookmarkColor { get; set; }
+    public string SpellCheckHighlightColor { get; set; }
     public string SingleLineMaxLength { get; set; }
     public string OptimalCharsPerSec { get; set; }
     public string MaxCharsPerSec { get; set; }
@@ -150,33 +151,7 @@ public class LanguageSettings
     public string DownloadFfmpeg { get; set; }
     public string FixCommonErrorsSkipStep1 { get; set; }
 
-    // Toolbar
-    public string ShowToolbarNew { get; set; }
-    public string ShowToolbarOpen { get; set; }
-    public string ShowToolbarVideoFileOpen { get; set; }
-    public string ShowToolbarSave { get; set; }
-    public string ShowToolbarSaveAs { get; set; }
-    public string ShowToolbarFind { get; set; }
-    public string ShowToolbarReplace { get; set; }
-    public string ShowToolbarMultipleReplace { get; set; }
-    public string ShowToolbarSpellCheck { get; set; }
-    public string ShowToolbarFixCommonErrors { get; set; }
-    public string ShowToolbarRemoveTextForHi { get; set; }
-    public string ShowToolbarVisualSync { get; set; }
-    public string ShowToolbarPointSync { get; set; }
-    public string ShowToolbarBeautifyTimeCodes { get; set; }
-    public string ShowToolbarBurnIn { get; set; }
-    public string ShowToolbarAutoTranslate { get; set; }
-    public string ShowToolbarSpeechToText { get; set; }
-    public string ShowToolbarSettings { get; set; }
-    public string ShowToolbarLayout { get; set; }
-    public string ShowToolbarHelp { get; set; }
-    public string ShowToolbarEncoding { get; set; }
-    public string ShowToolbarFrameRate { get; set; }
-    public string ShowToolbarStyleManager { get; set; }
-    public string ShowToolbarProperties { get; set; }
-    public string ShowToolbarAttachments { get; set; }
-    public string ShowToolbarAssaDraw { get; set; }
+    // Plugins
     public string ShowPluginsMenu { get; set; }
 
     // Network
@@ -209,6 +184,7 @@ public class LanguageSettings
     public string DownloadMpv { get; set; }
     public string DownloadVlc { get; set; }
     public string AllowSingleLetterShortcutsInTextbox { get; set; }
+    public string AllowTextNavigationShortcutsInTextbox { get; set; }
     public string SpellCheckEnglishTreatInApostropheAsIng { get; set; }
     public string GoToLineNumberSetsVideoPosition { get; set; }
     public string AdjustAllTimesRememberLineSelectionChoice { get; set; }
@@ -416,6 +392,7 @@ public class LanguageSettings
         ShowGridLines = "Show grid lines";
         ShowHorizontalLineAboveToolbar = "Show horizontal line above toolbar";
         BookmarkColor = "Bookmark color";
+        SpellCheckHighlightColor = "Spell check highlight color";
         SingleLineMaxLength = "Single line max length";
         OptimalCharsPerSec = "Optimal chars/sec";
         MaxCharsPerSec = "Max chars/sec";
@@ -494,33 +471,7 @@ public class LanguageSettings
         DownloadFfmpeg = "Download ffmpeg";
         FixCommonErrorsSkipStep1 = "Fix common errors: skip step 1 (choose fixes)";
 
-        // Toolbar
-        ShowToolbarNew = "Show new icon";
-        ShowToolbarOpen = "Show open icon";
-        ShowToolbarVideoFileOpen = "Show video file open icon";
-        ShowToolbarSave = "Show save icon";
-        ShowToolbarSaveAs = "Show save as icon";
-        ShowToolbarFind = "Show find icon";
-        ShowToolbarReplace = "Show replace icon";
-        ShowToolbarMultipleReplace = "Show multiple replace icon";
-        ShowToolbarSpellCheck = "Show spell check icon";
-        ShowToolbarFixCommonErrors = "Show fix common errors icon";
-        ShowToolbarRemoveTextForHi = "Show remove text for hearing impaired icon";
-        ShowToolbarVisualSync = "Show visual sync icon";
-        ShowToolbarPointSync = "Show point sync icon";
-        ShowToolbarBeautifyTimeCodes = "Show beautify time codes icon";
-        ShowToolbarBurnIn = "Show burn-in icon";
-        ShowToolbarAutoTranslate = "Show auto-translate icon";
-        ShowToolbarSpeechToText = "Show speech to text icon";
-        ShowToolbarSettings = "Show settings icon";
-        ShowToolbarLayout = "Show layout icon";
-        ShowToolbarHelp = "Show help icon";
-        ShowToolbarEncoding = "Show encoding";
-        ShowToolbarFrameRate = "Show frame rate";
-        ShowToolbarStyleManager = "Show style manager icon (ASSA/SSA/WebVTT)";
-        ShowToolbarProperties = "Show properties icon (ASSA/SSA)";
-        ShowToolbarAttachments = "Show attachments icon (ASSA/SSA)";
-        ShowToolbarAssaDraw = "Show ASSA draw icon (ASSA)";
+        // Plugins
         ShowPluginsMenu = "Show Plugins menu";
 
         // Network
@@ -545,6 +496,7 @@ public class LanguageSettings
         DownloadMpv = "Download mpv";
         DownloadVlc = "Download VLC";
         AllowSingleLetterShortcutsInTextbox = "Allow single-letter shortcuts in text box";
+        AllowTextNavigationShortcutsInTextbox = "Allow shortcuts on text-navigation keys (Ctrl+Left/Right, Home/End) in text box";
         SpellCheckEnglishTreatInApostropheAsIng = "Spell check: Treat words ending in 'in'' as 'ing' (English only)";
         GoToLineNumberSetsVideoPosition = "Go-to-line-number also sets video position";
         AdjustAllTimesRememberLineSelectionChoice = "Adjust all times, remember line selection choice";

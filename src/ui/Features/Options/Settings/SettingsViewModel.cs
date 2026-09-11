@@ -186,6 +186,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _selectedSaveAsAppendLanguageCode;
 
     [ObservableProperty] private bool _allowSingleLetterShortcutsInTextbox;
+    [ObservableProperty] private bool _allowTextNavigationShortcutsInTextbox;
     [ObservableProperty] private bool _goToLineNumberAlsoSetVideoPosition;
     [ObservableProperty] private bool _adjustAllTimesRememberLineSelectionChoice;
     [ObservableProperty] private bool _mergeKeepEndTime;
@@ -210,34 +211,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _showUpDownDuration;
     [ObservableProperty] private bool _showUpDownLabels;
 
-    [ObservableProperty] private bool _showToolbarNew;
-    [ObservableProperty] private bool _showToolbarOpen;
-    [ObservableProperty] private bool _showToolbarVideoFileOpen;
-    [ObservableProperty] private bool _showToolbarSave;
-    [ObservableProperty] private bool _showToolbarSaveAs;
-    [ObservableProperty] private bool _showToolbarFind;
-    [ObservableProperty] private bool _showToolbarReplace;
-    [ObservableProperty] private bool _showToolbarMultipleReplace;
-    [ObservableProperty] private bool _showToolbarSpellCheck;
-    [ObservableProperty] private bool _showToolbarFixCommonErrors;
-    [ObservableProperty] private bool _showToolbarRemoveTextForHi;
-    [ObservableProperty] private bool _showToolbarVisualSync;
-    [ObservableProperty] private bool _showToolbarPointSync;
-    [ObservableProperty] private bool _showToolbarBeautifyTimeCodes;
-    [ObservableProperty] private bool _showToolbarBurnIn;
-    [ObservableProperty] private bool _showToolbarAutoTranslate;
-    [ObservableProperty] private bool _showToolbarSpeechToText;
+    public IReadOnlyList<ToolbarSettingItem> ToolbarItems { get; } = ToolbarSettingItem.CreateItems();
+
     [ObservableProperty] private bool _fixCommonErrorsSkipStep1;
-    [ObservableProperty] private bool _showToolbarSettings;
-    [ObservableProperty] private bool _showToolbarLayout;
-    [ObservableProperty] private bool _showToolbarSourceView;
-    [ObservableProperty] private bool _showToolbarHelp;
-    [ObservableProperty] private bool _showToolbarEncoding;
-    [ObservableProperty] private bool _showToolbarFrameRate;
-    [ObservableProperty] private bool _showToolbarStyleManager;
-    [ObservableProperty] private bool _showToolbarProperties;
-    [ObservableProperty] private bool _showToolbarAttachments;
-    [ObservableProperty] private bool _showToolbarAssaDraw;
 
     [ObservableProperty] private bool _showPluginsMenu;
 
@@ -270,6 +246,8 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _autoOpenVideoFile;
 
     [ObservableProperty] private bool _waveformDrawGridLines;
+    [ObservableProperty] private bool _waveformShowNumberAndDuration;
+    [ObservableProperty] private bool _waveformShowCps;
     [ObservableProperty] private bool _waveformFocusOnMouseOver;
     [ObservableProperty] private bool _waveformCenterVideoPosition;
     [ObservableProperty] private bool _waveformCenterVideoPositionAlsoWhenPaused;
@@ -412,6 +390,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _useFocusedButtonBackgroundColor;
     [ObservableProperty] private Color _focusedButtonBackgroundColor;
     [ObservableProperty] private Color _bookmarkColor;
+    [ObservableProperty] private Color _spellCheckHighlightColor;
     [ObservableProperty] private Color _gridAlternatingRowColor;
     [ObservableProperty] private Color _gridAlternatingRowColorDark;
     [ObservableProperty] private bool _isEditCustomContinuationStyleVisible;
@@ -852,6 +831,7 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         AllowSingleLetterShortcutsInTextbox = Se.Settings.Tools.AllowSingleLetterShortcutsInTextbox;
+        AllowTextNavigationShortcutsInTextbox = Se.Settings.Tools.AllowTextNavigationShortcutsInTextbox;
         SpellCheckEnglishTreatInApostropheAsIng = Se.Settings.Tools.SpellCheckEnglishTreatInApostropheAsIng;
         GoToLineNumberAlsoSetVideoPosition = Se.Settings.Tools.GoToLineNumberAlsoSetVideoPosition;
         AdjustAllTimesRememberLineSelectionChoice = Se.Settings.Synchronization.AdjustAllTimesRememberLineSelectionChoice;
@@ -884,33 +864,10 @@ public partial class SettingsViewModel : ObservableObject
         {
             SelectedFontName = FontNames.FirstOrDefault(p => p == appearance.FontName) ?? FontNames.First();
         }
-        ShowToolbarNew = appearance.ToolbarShowFileNew;
-        ShowToolbarOpen = appearance.ToolbarShowFileOpen;
-        ShowToolbarVideoFileOpen = appearance.ToolbarShowVideoFileOpen;
-        ShowToolbarSave = appearance.ToolbarShowSave;
-        ShowToolbarSaveAs = appearance.ToolbarShowSaveAs;
-        ShowToolbarFind = appearance.ToolbarShowFind;
-        ShowToolbarReplace = appearance.ToolbarShowReplace;
-        ShowToolbarMultipleReplace = appearance.ToolbarShowMultipleReplace;
-        ShowToolbarSpellCheck = appearance.ToolbarShowSpellCheck;
-        ShowToolbarFixCommonErrors = appearance.ToolbarShowFixCommonErrors;
-        ShowToolbarRemoveTextForHi = appearance.ToolbarShowRemoveTextForHi;
-        ShowToolbarVisualSync = appearance.ToolbarShowVisualSync;
-        ShowToolbarPointSync = appearance.ToolbarShowPointSync;
-        ShowToolbarBeautifyTimeCodes = appearance.ToolbarShowBeautifyTimeCodes;
-        ShowToolbarBurnIn = appearance.ToolbarShowBurnIn;
-        ShowToolbarAutoTranslate = appearance.ToolbarShowAutoTranslate;
-        ShowToolbarSpeechToText = appearance.ToolbarShowSpeechToText;
-        ShowToolbarSettings = appearance.ToolbarShowSettings;
-        ShowToolbarLayout = appearance.ToolbarShowLayout;
-        ShowToolbarSourceView = appearance.ToolbarShowSourceView;
-        ShowToolbarHelp = appearance.ToolbarShowHelp;
-        ShowToolbarEncoding = appearance.ToolbarShowEncoding;
-        ShowToolbarFrameRate = appearance.ToolbarShowFrameRate;
-        ShowToolbarStyleManager = appearance.ToolbarShowStyleManager;
-        ShowToolbarProperties = appearance.ToolbarShowProperties;
-        ShowToolbarAttachments = appearance.ToolbarShowAttachments;
-        ShowToolbarAssaDraw = appearance.ToolbarShowAssaDraw;
+        foreach (var item in ToolbarItems)
+        {
+            item.Load(appearance);
+        }
         ShowPluginsMenu = appearance.ShowPluginsMenu;
         SubtitleGridFontSize = appearance.SubtitleGridFontSize;
         SubtitleGridTextSingleLine = appearance.SubtitleGridTextSingleLine;
@@ -942,6 +899,7 @@ public partial class SettingsViewModel : ObservableObject
         UseFocusedButtonBackgroundColor = appearance.UseFocusedButtonBackgroundColor;
         FocusedButtonBackgroundColor = appearance.FocusedButtonBackgroundColor.FromHexToColor();
         BookmarkColor = appearance.BookmarkColor.FromHexToColor();
+        SpellCheckHighlightColor = appearance.SpellCheckHighlightColor.FromHexToColor();
         GridAlternatingRowColor = appearance.GridAlternatingRowColor.FromHexToColor();
         GridAlternatingRowColorDark = appearance.GridAlternatingRowColorDark.FromHexToColor();
         ShowUpDownStartTime = appearance.ShowUpDownStartTime;
@@ -950,6 +908,8 @@ public partial class SettingsViewModel : ObservableObject
         ShowUpDownLabels = appearance.ShowUpDownLabels;
 
         WaveformDrawGridLines = Se.Settings.Waveform.DrawGridLines;
+        WaveformShowNumberAndDuration = Se.Settings.Waveform.WaveformShowNumberAndDuration;
+        WaveformShowCps = Se.Settings.Waveform.WaveformShowCps;
         WaveformFocusOnMouseOver = Se.Settings.Waveform.FocusOnMouseOver;
         WaveformCenterVideoPosition = Se.Settings.Waveform.CenterVideoPosition;
         WaveformCenterVideoPositionAlsoWhenPaused = Se.Settings.Waveform.CenterVideoPositionAlsoWhenPaused;
@@ -1717,6 +1677,7 @@ public partial class SettingsViewModel : ObservableObject
         general.FavoriteLanguages = string.Join(";", FavoriteLanguages.Select(l => l.Code));
 
         Se.Settings.Tools.AllowSingleLetterShortcutsInTextbox = AllowSingleLetterShortcutsInTextbox;
+        Se.Settings.Tools.AllowTextNavigationShortcutsInTextbox = AllowTextNavigationShortcutsInTextbox;
         Se.Settings.Tools.SpellCheckEnglishTreatInApostropheAsIng = SpellCheckEnglishTreatInApostropheAsIng;
         Se.Settings.Tools.GoToLineNumberAlsoSetVideoPosition = GoToLineNumberAlsoSetVideoPosition;
         Se.Settings.Synchronization.AdjustAllTimesRememberLineSelectionChoice = AdjustAllTimesRememberLineSelectionChoice;
@@ -1754,33 +1715,10 @@ public partial class SettingsViewModel : ObservableObject
                 ? new Label().FontFamily.Name
                 : SelectedFontName;
         }
-        appearance.ToolbarShowFileNew = ShowToolbarNew;
-        appearance.ToolbarShowFileOpen = ShowToolbarOpen;
-        appearance.ToolbarShowVideoFileOpen = ShowToolbarVideoFileOpen;
-        appearance.ToolbarShowSave = ShowToolbarSave;
-        appearance.ToolbarShowSaveAs = ShowToolbarSaveAs;
-        appearance.ToolbarShowFind = ShowToolbarFind;
-        appearance.ToolbarShowReplace = ShowToolbarReplace;
-        appearance.ToolbarShowMultipleReplace = ShowToolbarMultipleReplace;
-        appearance.ToolbarShowSpellCheck = ShowToolbarSpellCheck;
-        appearance.ToolbarShowFixCommonErrors = ShowToolbarFixCommonErrors;
-        appearance.ToolbarShowRemoveTextForHi = ShowToolbarRemoveTextForHi;
-        appearance.ToolbarShowVisualSync = ShowToolbarVisualSync;
-        appearance.ToolbarShowPointSync = ShowToolbarPointSync;
-        appearance.ToolbarShowBeautifyTimeCodes = ShowToolbarBeautifyTimeCodes;
-        appearance.ToolbarShowBurnIn = ShowToolbarBurnIn;
-        appearance.ToolbarShowAutoTranslate = ShowToolbarAutoTranslate;
-        appearance.ToolbarShowSpeechToText = ShowToolbarSpeechToText;
-        appearance.ToolbarShowSettings = ShowToolbarSettings;
-        appearance.ToolbarShowLayout = ShowToolbarLayout;
-        appearance.ToolbarShowSourceView = ShowToolbarSourceView;
-        appearance.ToolbarShowHelp = ShowToolbarHelp;
-        appearance.ToolbarShowEncoding = ShowToolbarEncoding;
-        appearance.ToolbarShowFrameRate = ShowToolbarFrameRate;
-        appearance.ToolbarShowStyleManager = ShowToolbarStyleManager;
-        appearance.ToolbarShowProperties = ShowToolbarProperties;
-        appearance.ToolbarShowAttachments = ShowToolbarAttachments;
-        appearance.ToolbarShowAssaDraw = ShowToolbarAssaDraw;
+        foreach (var item in ToolbarItems)
+        {
+            item.Save(appearance);
+        }
         appearance.ShowPluginsMenu = ShowPluginsMenu;
         appearance.SubtitleGridFontSize = SubtitleGridFontSize;
         appearance.SubtitleGridTextSingleLine = SubtitleGridTextSingleLine;
@@ -1806,6 +1744,7 @@ public partial class SettingsViewModel : ObservableObject
         appearance.UseFocusedButtonBackgroundColor = UseFocusedButtonBackgroundColor;
         appearance.FocusedButtonBackgroundColor = FocusedButtonBackgroundColor.FromColorToHex();
         appearance.BookmarkColor = BookmarkColor.FromColorToHex();
+        appearance.SpellCheckHighlightColor = SpellCheckHighlightColor.FromColorToHex();
         appearance.GridAlternatingRowColor = GridAlternatingRowColor.FromColorToHex();
         appearance.GridAlternatingRowColorDark = GridAlternatingRowColorDark.FromColorToHex();
         appearance.ShowUpDownStartTime = ShowUpDownStartTime;
@@ -1820,6 +1759,8 @@ public partial class SettingsViewModel : ObservableObject
         appearance.ShowHorizontalLineAboveToolbar = ShowHorizontalLineAboveToolbar;
 
         Se.Settings.Waveform.DrawGridLines = WaveformDrawGridLines;
+        Se.Settings.Waveform.WaveformShowNumberAndDuration = WaveformShowNumberAndDuration;
+        Se.Settings.Waveform.WaveformShowCps = WaveformShowCps;
         Se.Settings.Waveform.FocusOnMouseOver = WaveformFocusOnMouseOver;
         Se.Settings.Waveform.CenterVideoPosition = WaveformCenterVideoPosition;
         Se.Settings.Waveform.CenterVideoPositionAlsoWhenPaused = WaveformCenterVideoPositionAlsoWhenPaused;
@@ -2511,6 +2452,21 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (Directory.Exists(Se.WaveformsFolder))
         {
+            // Cache files are written through a "<name>.tmp" file next to the destination, so a
+            // crashed extraction can leave one behind; sweep those too, or "Delete" would leave
+            // the folder holding files the size info below still counts.
+            foreach (var file in Directory.GetFiles(Se.WaveformsFolder, "*.wav" + WaveCacheFile.TempSuffix).ToList())
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
             foreach (var file in Directory.GetFiles(Se.WaveformsFolder, "*.wav").ToList())
             {
                 try
@@ -2526,6 +2482,18 @@ public partial class SettingsViewModel : ObservableObject
 
         if (Directory.Exists(Se.SpectrogramsFolder))
         {
+            foreach (var file in Directory.GetFiles(Se.SpectrogramsFolder, "*.spectrogram" + WaveCacheFile.TempSuffix).ToList())
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
             foreach (var file in Directory.GetFiles(Se.SpectrogramsFolder, "*.spectrogram").ToList())
             {
                 try
@@ -2546,10 +2514,12 @@ public partial class SettingsViewModel : ObservableObject
         if (Directory.Exists(Se.WaveformsFolder))
         {
             files.AddRange(Directory.GetFiles(Se.WaveformsFolder, "*.wav"));
+            files.AddRange(Directory.GetFiles(Se.WaveformsFolder, "*.wav" + WaveCacheFile.TempSuffix));
         }
         if (Directory.Exists(Se.SpectrogramsFolder))
         {
             files.AddRange(Directory.GetFiles(Se.SpectrogramsFolder, "*.spectrogram", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(Se.SpectrogramsFolder, "*.spectrogram" + WaveCacheFile.TempSuffix, SearchOption.AllDirectories));
         }
         return files;
     }
@@ -2791,6 +2761,13 @@ public partial class SettingsViewModel : ObservableObject
         // compared against - without it OK re-applies every change this Apply already made and
         // rebuilds the layout (and the video player) a second time (issue #14218).
         AppliedSettingsSnapshot = SettingsChangeSnapshot.Take();
+
+        // Icon theme and recoloring can change without changing the actual theme variant.
+        if (Window != null &&
+            UiTheme.GetUnscaledContent(Window) is SettingsPage page)
+        {
+            page.RefreshSections();
+        }
     }
 
     [RelayCommand]

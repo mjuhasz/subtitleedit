@@ -226,6 +226,13 @@ public class AudioVisualizer : Control
     public bool ShowOriginalSubtitleOverlay { get; set; }
 
     private readonly List<WaveformOriginalSubtitleCue> _originalSubtitleCues = new();
+
+    /// <summary>
+    /// Running maximum of <see cref="WaveformOriginalSubtitleCue.EndSeconds"/> over the cues in
+    /// file order. Cues overlap (SDH music lines spanning dialogue, signs), so their end times are
+    /// not monotonic and cannot be binary-searched directly; the running maximum is.
+    /// </summary>
+    private readonly List<double> _originalSubtitleCueMaxEnds = new();
     private const double OriginalSubtitleOpacity = 0.5;
     private bool IsOriginalSubtitleOverlayVisible => ShowOriginalSubtitleOverlay && _originalSubtitleCues.Count > 0;
     private bool ShowOriginalTextInWaveform => ShowOriginalText && !IsOriginalSubtitleOverlayVisible;
@@ -233,9 +240,16 @@ public class AudioVisualizer : Control
     public void SetOriginalSubtitleCues(IReadOnlyList<WaveformOriginalSubtitleCue>? cues)
     {
         _originalSubtitleCues.Clear();
+        _originalSubtitleCueMaxEnds.Clear();
         if (cues != null)
         {
             _originalSubtitleCues.AddRange(cues);
+            var maxEnd = double.MinValue;
+            foreach (var cue in cues)
+            {
+                maxEnd = Math.Max(maxEnd, cue.EndSeconds);
+                _originalSubtitleCueMaxEnds.Add(maxEnd);
+            }
         }
 
         InvalidateVisual();
@@ -530,6 +544,7 @@ public class AudioVisualizer : Control
     public class PositionEventArgs : EventArgs
     {
         public double PositionInSeconds { get; set; }
+        public bool IsCtrlShift { get; set; }
     }
 
     public class ContextEventArgs : EventArgs
@@ -572,6 +587,7 @@ public class AudioVisualizer : Control
     /// move/resize drag. Lets hosts select the paragraph the user grabbed before the drag
     /// mutates it (#14000) - a click is delivered via <see cref="OnPrimarySingleClicked"/> instead.</summary>
     public event ParagraphEventHandler? OnDragStarted;
+    public event EventHandler? OnDragEnded;
 
     /// <summary>Raised when the user clicks the empty waveform to generate it on demand
     /// (shown only when auto-generate is off and there are no cached peaks).</summary>
@@ -944,10 +960,12 @@ public class AudioVisualizer : Control
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        // Cleared up front: every path out of this method ends the drag, and several of them
-        // return early. The 500 ms tail in IsEditingWithPointer takes over from here, so the
-        // settled times still get one - and only one - undo snapshot.
+        var wasDragging = _pointerDragActive;
         _pointerDragActive = false;
+        if (wasDragging)
+        {
+            OnDragEnded?.Invoke(this, EventArgs.Empty);
+        }
 
         _isCtrlDown = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         _isShiftDown = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
@@ -1255,7 +1273,7 @@ public class AudioVisualizer : Control
         else
         {
             // Not near an edge, so it's a move operation
-            if (_isCtrlDown || _isAltDown)
+            if ((_isCtrlDown && !_isShiftDown) || _isAltDown)
             {
                 _interactionMode = InteractionMode.None;
                 return;
@@ -1293,7 +1311,12 @@ public class AudioVisualizer : Control
     /// </summary>
     private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
+        var wasDragging = _pointerDragActive;
         _pointerDragActive = false;
+        if (wasDragging)
+        {
+            OnDragEnded?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void OnPointerExited(object? sender, PointerEventArgs e)
@@ -1690,8 +1713,9 @@ public class AudioVisualizer : Control
 
                 if (previous != null && newStart < previous.EndTime.TotalSeconds + MinGapSeconds)
                 {
-                    newStart = previous.EndTime.TotalSeconds + MinGapSeconds + 0.001;
-                    newStart = SnapToFrameCeil(newStart);
+                    // Exactly the gap, no "strictly after" nudge: a 1 ms nudge here rolled the
+                    // ceiling over to the next frame, so a 2-frame minimum gap dragged to 3.
+                    newStart = SnapToFrameCeil(previous.EndTime.TotalSeconds + MinGapSeconds);
                 }
 
                 if (newStart < _activeParagraph.EndTime.TotalSeconds - 0.1)
@@ -1716,8 +1740,9 @@ public class AudioVisualizer : Control
 
                 if (next != null && newEnd > next.StartTime.TotalSeconds - MinGapSeconds)
                 {
-                    newEnd = next.StartTime.TotalSeconds - 0.001 - MinGapSeconds;
-                    newEnd = SnapToFrameFloor(newEnd);
+                    // Exactly the gap - see the ResizingLeft clamp: minus 1 ms then floor landed
+                    // one frame early, so a 2-frame minimum gap could never be dragged to 2 frames.
+                    newEnd = SnapToFrameFloor(next.StartTime.TotalSeconds - MinGapSeconds);
                 }
 
                 if (newEnd > _activeParagraph.StartTime.TotalSeconds + 0.1)
@@ -1733,18 +1758,28 @@ public class AudioVisualizer : Control
         _lastPointerEditMs = Environment.TickCount64;
 
         // SE 4 parity: scrub the video to the edge being dragged so the user sees the
-        // exact frame at the new start/end while resizing (whole-paragraph moves are excluded).
-        if (Se.Settings.Waveform.SetVideoPositionOnMoveStartEnd && OnVideoPositionChanged != null && _activeParagraph != null)
+        // exact frame at the new start/end while resizing (whole-paragraph moves are excluded unless Ctrl+Shift is held).
+        var isCtrlShift = _isCtrlDown && _isShiftDown;
+        if ((isCtrlShift || Se.Settings.Waveform.SetVideoPositionOnMoveStartEnd) && OnVideoPositionChanged != null && _activeParagraph != null)
         {
             switch (_interactionMode)
             {
                 case InteractionMode.ResizingLeft:
                 case InteractionMode.ResizeLeftAnd:
-                    OnVideoPositionChanged.Invoke(this, new PositionEventArgs { PositionInSeconds = _activeParagraph.StartTime.TotalSeconds });
+                    OnVideoPositionChanged.Invoke(this, new PositionEventArgs { PositionInSeconds = _activeParagraph.StartTime.TotalSeconds, IsCtrlShift = isCtrlShift });
+                    break;
+                case InteractionMode.Moving:
+                case InteractionMode.MovingSelection:
+                    // Whole-paragraph moves only scrub in the Ctrl+Shift preview mode, never
+                    // from the SetVideoPositionOnMoveStartEnd setting alone.
+                    if (isCtrlShift)
+                    {
+                        OnVideoPositionChanged.Invoke(this, new PositionEventArgs { PositionInSeconds = _activeParagraph.StartTime.TotalSeconds, IsCtrlShift = true });
+                    }
                     break;
                 case InteractionMode.ResizingRight:
                 case InteractionMode.ResizeRightAnd:
-                    OnVideoPositionChanged.Invoke(this, new PositionEventArgs { PositionInSeconds = _activeParagraph.EndTime.TotalSeconds });
+                    OnVideoPositionChanged.Invoke(this, new PositionEventArgs { PositionInSeconds = _activeParagraph.EndTime.TotalSeconds, IsCtrlShift = isCtrlShift });
                     break;
             }
         }
@@ -1762,6 +1797,17 @@ public class AudioVisualizer : Control
         return Math.Round(seconds / frameDur, MidpointRounding.AwayFromZero) * frameDur;
     }
 
+    /// <summary>
+    /// Earliest frame time at or after <paramref name="seconds"/>, compared in whole milliseconds -
+    /// the resolution subtitle times are stored at (<see cref="TimeSpanExtensions.FromSecondsWholeMilliseconds"/>).
+    /// <para>
+    /// The bounds fed in here are built from stored times (a neighbour's cue plus the minimum gap),
+    /// so at a non-integer frame rate they sit up to half a millisecond off the exact frame: at
+    /// 29.97 fps frame 101 is stored as 3370 ms, not 3370.03. A plain Math.Ceiling of 3370 / 33.37
+    /// would move such a bound to frame 102 and open the gap by a frame; comparing the candidate
+    /// frames' whole-ms times against the whole-ms bound keeps it on frame 101.
+    /// </para>
+    /// </summary>
     private static double SnapToFrameCeil(double seconds)
     {
         if (!TryGetFrameDuration(out var frameDur))
@@ -1769,9 +1815,24 @@ public class AudioVisualizer : Control
             return seconds;
         }
 
-        return Math.Ceiling(seconds / frameDur) * frameDur;
+        var boundMs = Math.Round(seconds * TimeCode.BaseUnit, MidpointRounding.AwayFromZero);
+        var frame = Math.Ceiling(seconds / frameDur);
+        if (FrameToWholeMs(frame - 1, frameDur) >= boundMs)
+        {
+            frame--;
+        }
+        else if (FrameToWholeMs(frame, frameDur) < boundMs)
+        {
+            frame++;
+        }
+
+        return frame * frameDur;
     }
 
+    /// <summary>
+    /// Latest frame time at or before <paramref name="seconds"/>, compared in whole milliseconds -
+    /// the mirror of <see cref="SnapToFrameCeil"/>.
+    /// </summary>
     private static double SnapToFrameFloor(double seconds)
     {
         if (!TryGetFrameDuration(out var frameDur))
@@ -1779,7 +1840,25 @@ public class AudioVisualizer : Control
             return seconds;
         }
 
-        return Math.Floor(seconds / frameDur) * frameDur;
+        var boundMs = Math.Round(seconds * TimeCode.BaseUnit, MidpointRounding.AwayFromZero);
+        var frame = Math.Floor(seconds / frameDur);
+        if (FrameToWholeMs(frame + 1, frameDur) <= boundMs)
+        {
+            frame++;
+        }
+        else if (FrameToWholeMs(frame, frameDur) > boundMs)
+        {
+            frame--;
+        }
+
+        return frame * frameDur;
+    }
+
+    /// <summary>The whole-millisecond time a frame is stored at (the same rounding as
+    /// <see cref="TimeSpanExtensions.FromSecondsWholeMilliseconds"/>).</summary>
+    private static double FrameToWholeMs(double frame, double frameDur)
+    {
+        return Math.Round(frame * frameDur * TimeCode.BaseUnit, MidpointRounding.AwayFromZero);
     }
 
     private static bool TryGetFrameDuration(out double frameDur)
@@ -3440,7 +3519,9 @@ public class AudioVisualizer : Control
     {
         var start = renderCtx.StartPositionSeconds;
         var end = RelativeXPositionToSecondsOptimized(renderCtx.Width, renderCtx.SampleRate, start, renderCtx.ZoomFactor);
-        var startIndex = FindFirstIndexAfterTime(_originalSubtitleCues, start, static cue => cue.EndSeconds);
+        // A long cue overlapped by a shorter one ends after its successor, so searching the raw
+        // end times from the viewport start would skip it whenever the view begins inside it.
+        var startIndex = FindFirstIndexAfterTime(_originalSubtitleCueMaxEnds, start, static maxEnd => maxEnd);
         var lastStart = -1d;
         var count = 0;
 

@@ -17,8 +17,18 @@ using System.Linq;
 
 namespace Nikse.SubtitleEdit.Logic;
 
-public static class UiTheme
+public static partial class UiTheme
 {
+    private readonly record struct PopupMenuMetrics(
+        double FontSize,
+        double MinHeight,
+        Thickness? ItemPadding,
+        Thickness? ItemMargin,
+        Thickness PresenterPadding,
+        CornerRadius PresenterCornerRadius,
+        CornerRadius ItemCornerRadius,
+        Thickness SeparatorMargin);
+
     private static IStyle? _themeOverrideStyle;
     private static IStyle? _layoutScaleMenuStyle;
     private static ResourceDictionary? _resourceOverrides;
@@ -148,7 +158,10 @@ public static class UiTheme
         }
 
         ApplyMenuScaleStyle(Se.Settings.Appearance.LayoutScale);
+        ApplyMacMenuChromeStyle(Se.Settings.Appearance.LayoutScale);
+        ApplyMacButtonStyle();
         ApplyLayoutScaleToAllWindows();
+        ApplyScaleToExistingMenus(Se.Settings.Appearance.LayoutScale);
     }
 
     public static Action? SystemThemeChangedCallback { get; set; }
@@ -274,6 +287,7 @@ public static class UiTheme
     {
         Se.Settings.Appearance.LayoutScale = factor;
         ApplyMenuScaleStyle(factor);
+        ApplyMacMenuChromeStyle(factor);
         ApplyLayoutScaleToAllWindows();
         ApplyScaleToExistingMenus(factor);
     }
@@ -295,11 +309,13 @@ public static class UiTheme
         // Create a new style each time with the scaled values baked in.
         // This forces re-evaluation on all controls including popup menus.
         var styles = new Styles();
+        var popupMetrics = GetPopupMenuMetrics(factor);
+        var submenuMetrics = GetSubmenuMetrics(factor);
 
         // Scale MenuItems in popups/context menus (outside LayoutTransformControl)
         var menuItemStyle = new Style(x => x.OfType<MenuItem>());
-        menuItemStyle.Setters.Add(new Setter(TemplatedControl.FontSizeProperty, 14.0 * factor));
-        menuItemStyle.Setters.Add(new Setter(Layoutable.MinHeightProperty, 32.0 * factor));
+        menuItemStyle.Setters.Add(new Setter(TemplatedControl.FontSizeProperty, popupMetrics.FontSize));
+        menuItemStyle.Setters.Add(new Setter(Layoutable.MinHeightProperty, popupMetrics.MinHeight));
         styles.Add(menuItemStyle);
 
         // Reset MenuItems inside LayoutTransformControl (already scaled by transform)
@@ -376,6 +392,51 @@ public static class UiTheme
         Application.Current.Styles.Add(_scrollBarStyle);
     }
 
+    public static void ApplyMenuScaleToWindow(Window window)
+    {
+        var factor = Se.Settings.Appearance.LayoutScale;
+
+        foreach (var visual in window.GetVisualDescendants())
+        {
+            if (visual is Menu menu)
+            {
+                // Scale submenu items only (top-level items are inside LTC and already scaled)
+                foreach (var obj in menu.Items)
+                {
+                    if (obj is MenuItem topItem)
+                    {
+                        ScaleChildMenuItems(topItem, factor);
+                    }
+                }
+            }
+
+            if (visual is not Control control)
+            {
+                continue;
+            }
+
+            if (control.ContextMenu is { } contextMenu)
+            {
+                ScaleMenuItems(contextMenu, factor);
+                contextMenu.Opened -= OnContextMenuOpened;
+                contextMenu.Opened += OnContextMenuOpened;
+            }
+
+            if (control.ContextFlyout is MenuFlyout menuFlyout)
+            {
+                ScaleMenuFlyoutItems(menuFlyout, factor);
+                menuFlyout.Opened -= OnMenuFlyoutOpened;
+                menuFlyout.Opened += OnMenuFlyoutOpened;
+            }
+        }
+
+        foreach (var cb in window.GetVisualDescendants().OfType<ComboBox>())
+            AttachMacComboBoxArrowOverride(cb);
+
+    }
+
+    static partial void ApplyMacMenuChromeStyle(double factor);
+    static partial void ApplyMacButtonStyle();
 
     /// <summary>
     /// Walk all open windows, find Menu, ContextMenu, and MenuFlyout instances,
@@ -391,50 +452,21 @@ public static class UiTheme
 
         foreach (var window in desktop.Windows)
         {
-            foreach (var visual in window.GetVisualDescendants())
-            {
-                if (visual is Menu menu)
-                {
-                    // Scale submenu items only (top-level items are inside LTC and already scaled)
-                    foreach (var obj in menu.Items)
-                    {
-                        if (obj is MenuItem topItem)
-                        {
-                            ScaleChildMenuItems(topItem, factor);
-                        }
-                    }
-                }
-
-                if (visual is not Control control)
-                {
-                    continue;
-                }
-
-                if (control.ContextMenu is { } contextMenu)
-                {
-                    ScaleMenuItems(contextMenu, factor);
-                    contextMenu.Opened -= OnContextMenuOpened;
-                    contextMenu.Opened += OnContextMenuOpened;
-                }
-
-                if (control.ContextFlyout is MenuFlyout menuFlyout)
-                {
-                    ScaleMenuFlyoutItems(menuFlyout, factor);
-                    menuFlyout.Opened -= OnMenuFlyoutOpened;
-                    menuFlyout.Opened += OnMenuFlyoutOpened;
-                }
-            }
+            ApplyMenuScaleToWindow(window);
         }
     }
 
     private static void ScaleChildMenuItems(MenuItem parent, double factor)
     {
+        var metrics = GetSubmenuMetrics(factor);
+
         foreach (var obj in parent.Items)
         {
             if (obj is MenuItem item)
             {
-                item.FontSize = 14.0 * factor;
-                item.MinHeight = 32.0 * factor;
+                item.FontSize = metrics.FontSize;
+                item.MinHeight = metrics.MinHeight;
+                if (metrics.ItemPadding is { } sp) item.Padding = sp;
                 ScaleChildMenuItems(item, factor);
             }
         }
@@ -442,12 +474,16 @@ public static class UiTheme
 
     private static void ScaleMenuItems(ItemsControl parent, double factor)
     {
+        var metrics = GetPopupMenuMetrics(factor);
+
         foreach (var obj in parent.Items)
         {
             if (obj is MenuItem item)
             {
-                item.FontSize = 14.0 * factor;
-                item.MinHeight = 32.0 * factor;
+                item.FontSize = metrics.FontSize;
+                item.MinHeight = metrics.MinHeight;
+                if (metrics.ItemPadding is { } p) item.Padding = p;
+                if (metrics.ItemMargin is { } m) item.Margin = m;
                 ScaleMenuItems(item, factor);
             }
         }
@@ -455,13 +491,17 @@ public static class UiTheme
 
     private static void ScaleMenuFlyoutItems(MenuFlyout flyout, double factor)
     {
+        var metrics = GetPopupMenuMetrics(factor);
+
         foreach (var obj in flyout.Items)
         {
             if (obj is MenuItem item)
             {
-                item.FontSize = 14.0 * factor;
-                item.MinHeight = 32.0 * factor;
-                ScaleMenuItems(item, factor);
+                item.FontSize = metrics.FontSize;
+                item.MinHeight = metrics.MinHeight;
+                if (metrics.ItemPadding is { } p) item.Padding = p;
+                if (metrics.ItemMargin is { } m) item.Margin = m;
+                ScaleChildMenuItems(item, factor);
             }
         }
     }
@@ -482,6 +522,58 @@ public static class UiTheme
             var factor = Se.Settings.Appearance.LayoutScale;
             ScaleMenuFlyoutItems(flyout, factor);
         }
+    }
+
+    private static PopupMenuMetrics GetPopupMenuMetrics(double factor)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return new PopupMenuMetrics(
+                FontSize: 13.0 * factor,
+                MinHeight: 26.0 * factor,
+                ItemPadding: new Thickness(14.0 * factor, 4.0 * factor, 20.0 * factor, 4.0 * factor),
+                ItemMargin: new Thickness(4.0 * factor, factor, 4.0 * factor, factor),
+                PresenterPadding: new Thickness(6.0 * factor),
+                PresenterCornerRadius: new CornerRadius(10.0 * factor),
+                ItemCornerRadius: new CornerRadius(6.0 * factor),
+                SeparatorMargin: new Thickness(10.0 * factor, 6.0 * factor));
+        }
+
+        return new PopupMenuMetrics(
+            FontSize: 14.0 * factor,
+            MinHeight: 32.0 * factor,
+            ItemPadding: null,
+            ItemMargin: null,
+            PresenterPadding: new Thickness(0),
+            PresenterCornerRadius: new CornerRadius(0),
+            ItemCornerRadius: new CornerRadius(0),
+            SeparatorMargin: new Thickness(0));
+    }
+
+    private static PopupMenuMetrics GetSubmenuMetrics(double factor)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return new PopupMenuMetrics(
+                FontSize: 13.0 * factor,
+                MinHeight: 23.0 * factor,
+                ItemPadding: new Thickness(10.0 * factor, factor),
+                ItemMargin: new Thickness(0),
+                PresenterPadding: new Thickness(0),
+                PresenterCornerRadius: new CornerRadius(0),
+                ItemCornerRadius: new CornerRadius(0),
+                SeparatorMargin: new Thickness(0));
+        }
+
+        return new PopupMenuMetrics(
+            FontSize: 14.0 * factor,
+            MinHeight: 32.0 * factor,
+            ItemPadding: null,
+            ItemMargin: null,
+            PresenterPadding: new Thickness(0),
+            PresenterCornerRadius: new CornerRadius(0),
+            ItemCornerRadius: new CornerRadius(0),
+            SeparatorMargin: new Thickness(0));
     }
 
     public static void UpdateRegionColor()

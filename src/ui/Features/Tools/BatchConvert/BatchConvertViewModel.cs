@@ -78,6 +78,7 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
     [ObservableProperty] private double _progressMaxValue;
     [ObservableProperty] private string _actionsSelected;
     [ObservableProperty] private bool _isTargetFormatSettingsVisible;
+    [ObservableProperty] private bool _isTransportStreamSettingsVisible;
     [ObservableProperty] private ObservableCollection<string> _filterItems;
     [ObservableProperty] private string? _selectedFilterItem;
     [ObservableProperty] private string _filterText;
@@ -192,6 +193,7 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
     // Merge lines with same text
     [ObservableProperty] private int _mergeSameTextMaxMillisecondsBetweenLines;
     [ObservableProperty] private bool _mergeSameTextIncludeIncrementingLines;
+    [ObservableProperty] private bool _mergeSameTextIncludeRollUpCaptions;
 
     // Merge lines with same time codes
     [ObservableProperty] private int _mergeSameTimeMaxMillisecondsDifference;
@@ -719,6 +721,7 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
         // Merge lines with same text / same time codes (shared with the standalone dialogs)
         Se.Settings.Tools.MergeSameText.MaxMillisecondsBetweenLines = MergeSameTextMaxMillisecondsBetweenLines;
         Se.Settings.Tools.MergeSameText.IncludeIncrementingLines = MergeSameTextIncludeIncrementingLines;
+        Se.Settings.Tools.MergeSameText.IncludeRollUpCaptions = MergeSameTextIncludeRollUpCaptions;
         Se.Settings.Tools.MergeSameTimeCode.MaxMillisecondsDifference = MergeSameTimeMaxMillisecondsDifference;
         Se.Settings.Tools.MergeSameTimeCode.MergeDialog = MergeSameTimeMergeDialog;
         Se.Settings.Tools.MergeSameTimeCode.AutoBreak = MergeSameTimeAutoBreak;
@@ -918,6 +921,7 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
 
         MergeSameTextMaxMillisecondsBetweenLines = Se.Settings.Tools.MergeSameText.MaxMillisecondsBetweenLines;
         MergeSameTextIncludeIncrementingLines = Se.Settings.Tools.MergeSameText.IncludeIncrementingLines;
+        MergeSameTextIncludeRollUpCaptions = Se.Settings.Tools.MergeSameText.IncludeRollUpCaptions;
 
         MergeSameTimeMaxMillisecondsDifference = Se.Settings.Tools.MergeSameTimeCode.MaxMillisecondsDifference;
         MergeSameTimeMergeDialog = Se.Settings.Tools.MergeSameTimeCode.MergeDialog;
@@ -2413,6 +2417,8 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
         var total = _allBatchItems.Count;
         var shown = BatchItems.Count;
 
+        IsTransportStreamSettingsVisible = _allBatchItems.Any(p => p.Format != null && p.Format.StartsWith("Transport Stream", StringComparison.Ordinal));
+
         if (total == 0)
         {
             BatchItemsInfo = string.Empty;
@@ -2622,6 +2628,12 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
     }
 
     [RelayCommand]
+    private async Task ShowTransportStreamSettings()
+    {
+        await _windowService.ShowDialogAsync<BatchConvertTsSettingsWindow, BatchConvertTsSettingsViewModel>(Window!);
+    }
+
+    [RelayCommand]
     private void SelectAll()
     {
         foreach (BatchConvertFunction batchConvertFunction in BatchFunctions)
@@ -2748,6 +2760,7 @@ public partial class BatchConvertViewModel : ObservableObject, IClosingCleanup
             {
                 IsActive = activeFunctions.Contains(BatchConvertFunctionType.MergeLinesWithSameText),
                 IncludeIncrementingLines = MergeSameTextIncludeIncrementingLines,
+                IncludeRollUpCaptions = MergeSameTextIncludeRollUpCaptions,
                 MaxMillisecondsBetweenLines = MergeSameTextMaxMillisecondsBetweenLines,
             },
 

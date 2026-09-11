@@ -821,7 +821,7 @@ public partial class BinaryEditViewModel : ObservableObject
         // WebVTT with embedded base64 thumbnail images
         if (ext is ".vtt" or ".webvtt")
         {
-            var lines = File.ReadAllLines(fileName).ToList();
+            var lines = (await File.ReadAllLinesAsync(fileName)).ToList();
             var webVttThumbnail = new Nikse.SubtitleEdit.Core.SubtitleFormats.WebVttThumbnail();
             if (webVttThumbnail.IsMine(lines, fileName))
             {
@@ -1267,7 +1267,10 @@ public partial class BinaryEditViewModel : ObservableObject
 
     private void WriteExport(IExportHandler exportHandler, string fileOrFolderName)
     {
-        var imageParameter = new ImageParameter()
+        // One parameter object per line, like every other export caller: the Blu-ray sup
+        // handler holds a line back while the next may still overlap it, so a shared object
+        // mutated per line lost the first line and wrote the last twice (issue #14666).
+        ImageParameter MakeImageParameter() => new()
         {
             ScreenWidth = ScreenWidth,
             ScreenHeight = ScreenHeight,
@@ -1283,12 +1286,13 @@ public partial class BinaryEditViewModel : ObservableObject
             FramesPerSecond = Configuration.Settings.General.CurrentFrameRate,
         };
 
-        exportHandler.WriteHeader(fileOrFolderName, imageParameter);
+        exportHandler.WriteHeader(fileOrFolderName, MakeImageParameter());
         for (var i = 0; i < Subtitles.Count; i++)
         {
             // ToSkBitmap allocates a new SKBitmap each call; dispose it per iteration so the
             // export of a large file doesn't accumulate one undisposed native bitmap per line.
             using var skBitmap = Subtitles[i].Bitmap!.ToSkBitmap();
+            var imageParameter = MakeImageParameter();
             imageParameter.Bitmap = skBitmap;
             imageParameter.Text = Subtitles[i].Text;
             imageParameter.StartTime = Subtitles[i].StartTime;
@@ -1633,6 +1637,60 @@ public partial class BinaryEditViewModel : ObservableObject
 
         UpdateOverlayPosition();
         RefreshStatusText();
+    }
+
+    [RelayCommand]
+    private async Task MoveCaptions()
+    {
+        if (Window == null)
+        {
+            return;
+        }
+
+        if (Subtitles.Count == 0)
+        {
+            await MessageBox.Show(Window, Se.Language.General.Information,
+                Se.Language.Tools.ImageBasedEdit.NoImageSubtitlesLoaded,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        await ShowMoveCaptions(Subtitles.ToList());
+    }
+
+    [RelayCommand]
+    private async Task MoveCaptionsSelectedLines()
+    {
+        if (Window == null)
+        {
+            return;
+        }
+
+        var selectedItems = GetSelectedItems();
+        if (selectedItems.Count == 0)
+        {
+            return;
+        }
+
+        await ShowMoveCaptions(selectedItems);
+        ApplyGridSelection(selectedItems);
+    }
+
+    private async Task ShowMoveCaptions(List<BinarySubtitleItem> items)
+    {
+        // Open on the letterbox the position monitor already shows.
+        var ratioKey = SelectedLetterboxRatio.SettingsKey;
+        var barHeight = _currentLetterboxBarHeight;
+        var result = await _windowService.ShowDialogAsync<BinaryMoveCaptions.BinaryMoveCaptionsWindow, BinaryMoveCaptions.BinaryMoveCaptionsViewModel>(
+            Window!, vm => vm.Initialize(items, ScreenWidth, ScreenHeight, ratioKey, barHeight));
+
+        if (!result.OkPressed)
+        {
+            return;
+        }
+
+        UpdateOverlayPosition();
+        RefreshPositionMonitor();
     }
 
     [RelayCommand]
@@ -2230,7 +2288,7 @@ public partial class BinaryEditViewModel : ObservableObject
 
         using var skBitmap = selectedItem.Bitmap.ToSkBitmap();
         var pngBytes = skBitmap.ToPngArray();
-        System.IO.File.WriteAllBytes(fileName, pngBytes);
+        await System.IO.File.WriteAllBytesAsync(fileName, pngBytes);
     }
 
     [RelayCommand]
@@ -2455,6 +2513,64 @@ public partial class BinaryEditViewModel : ObservableObject
     private void Cancel()
     {
         Window?.Close();
+    }
+
+    [RelayCommand]
+    private async Task RemoveFades()
+    {
+        if (Window == null)
+        {
+            return;
+        }
+
+        if (Subtitles.Count == 0)
+        {
+            await MessageBox.Show(Window, Se.Language.General.Information,
+                Se.Language.Tools.ImageBasedEdit.NoImageSubtitlesLoaded,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var selectedItem = SelectedSubtitle;
+        var items = Subtitles.ToList();
+        var removed = FadeRemover.RemoveFades(items);
+        if (removed == 0)
+        {
+            await MessageBox.Show(Window, Se.Language.General.Information,
+                Se.Language.Tools.ImageBasedEdit.RemoveFadeInOutNothingFound,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        foreach (var item in Subtitles)
+        {
+            item.PropertyChanged -= OnSubtitleItemPropertyChanged;
+        }
+
+        Subtitles.Clear();
+        foreach (var item in items)
+        {
+            Subtitles.Add(item);
+            item.PropertyChanged += OnSubtitleItemPropertyChanged;
+        }
+
+        Renumber();
+        _isDirty = true;
+        if (SubtitleGrid != null)
+        {
+            var newIndex = selectedItem != null ? Subtitles.IndexOf(selectedItem) : -1;
+            SubtitleGrid.ItemsSource = null;
+            SubtitleGrid.ItemsSource = Subtitles;
+            SelectAndScrollToRow(Math.Max(0, newIndex));
+        }
+
+        UpdateOverlayPosition();
+        RefreshPositionMonitor();
+        RefreshStatusText();
+
+        await MessageBox.Show(Window, Se.Language.General.Information,
+            string.Format(Se.Language.Tools.ImageBasedEdit.RemoveFadeInOutXLinesRemoved, removed),
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     [RelayCommand]

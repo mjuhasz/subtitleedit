@@ -50,7 +50,7 @@ public class BatchConvertWindow : Window
                 labelBatchItemsInfo,
             }
         };
-        panelInfo.WithBindVisible(vm, nameof(vm.IsConverting), new InverseBooleanConverter());
+        panelInfo.WithBindVisible(vm, nameof(vm.IsConverting), InverseBooleanConverter.Instance);
 
         var buttonConvert = new SplitButton
         {
@@ -73,9 +73,9 @@ public class BatchConvertWindow : Window
                 }
             }
         };
-        buttonConvert.Bind(SplitButton.IsEnabledProperty, new Binding(nameof(vm.IsConverting)) { Converter = new InverseBooleanConverter() });
+        buttonConvert.Bind(SplitButton.IsEnabledProperty, new Binding(nameof(vm.IsConverting)) { Converter = InverseBooleanConverter.Instance });
 
-        var buttonDone = UiUtil.MakeButtonDone(vm.DoneCommand).WithBindIsVisible(nameof(vm.IsConverting), new InverseBooleanConverter());
+        var buttonDone = UiUtil.MakeButtonDone(vm.DoneCommand).WithBindIsVisible(nameof(vm.IsConverting), InverseBooleanConverter.Instance);
         var buttonCancel = UiUtil.MakeButtonCancel(vm.CancelCommand).WithBindIsVisible(vm, nameof(vm.IsConverting));
         var buttonPanel = UiUtil.MakeButtonBar(
             buttonConvert,
@@ -242,6 +242,11 @@ public class BatchConvertWindow : Window
             .WithMarginLeft(5)
             .WithMarginRight(5);
         buttonTargetFormatSettings.WithBindIsVisible(vm, nameof(vm.IsTargetFormatSettingsVisible));
+        // Only offered while a Transport Stream file is in the list - the settings apply to nothing else.
+        var buttonTransportStreamSettings = UiUtil.MakeButton(vm.ShowTransportStreamSettingsCommand, IconNames.FileCog, Se.Language.Tools.BatchConvert.TransportStreamSettingsDotDotDot)
+            .WithMarginLeft(5)
+            .WithMarginRight(5);
+        buttonTransportStreamSettings.WithBindIsVisible(vm, nameof(vm.IsTransportStreamSettingsVisible));
         var buttonSettings = UiUtil.MakeButton(vm.ShowOutputPropertiesCommand, IconNames.Settings, Se.Language.General.Settings).WithMarginLeft(15).WithMarginRight(5);
 
         var panelFileControls = new StackPanel
@@ -259,6 +264,7 @@ public class BatchConvertWindow : Window
                 UiUtil.MakeLabel(Se.Language.General.TargetFormat).WithMarginLeft(15),
                 comboBoxSubtitleFormat,
                 buttonTargetFormatSettings,
+                buttonTransportStreamSettings,
                 buttonSettings,
                 MakeOutputPropertiesGrid(vm),
             }
@@ -296,7 +302,7 @@ public class BatchConvertWindow : Window
         menuItemRemove.Bind(MenuItem.IsVisibleProperty, new Binding(nameof(vm.IsRemoveVisible)) { Source = vm });
         menuItemRemove.Bind(MenuItem.IsEnabledProperty, new Binding(nameof(vm.IsConverting))
         {
-            Converter = new InverseBooleanConverter(),
+            Converter = InverseBooleanConverter.Instance,
             Source = vm,
         });
         flyout.Items.Add(menuItemRemove);
@@ -310,7 +316,7 @@ public class BatchConvertWindow : Window
         menuItemOpenContainingFolder.Bind(MenuItem.IsVisibleProperty, new Binding(nameof(vm.IsOpenContainingFolderVisible)) { Source = vm });
         menuItemOpenContainingFolder.Bind(MenuItem.IsEnabledProperty, new Binding(nameof(vm.IsConverting))
         {
-            Converter = new InverseBooleanConverter(),
+            Converter = InverseBooleanConverter.Instance,
             Source = vm,
         });
         flyout.Items.Add(menuItemOpenContainingFolder);

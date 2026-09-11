@@ -48,6 +48,13 @@ public static class MainWindowFactory
         // reparent the video player's native HWND and freeze the UI.
         window.Content = new LayoutTransformControl { Child = mainView };
         UiTheme.ApplyScaleToWindow(window);
+        if (OperatingSystem.IsMacOS())
+        {
+            window.Opened += static (s, _) =>
+            {
+                if (s is Window w) UiTheme.ApplyMenuScaleToWindow(w);
+            };
+        }
 
         // Restore the saved position only for the primary window; extra windows opening
         // exactly on top of it would hide that a new window appeared at all.

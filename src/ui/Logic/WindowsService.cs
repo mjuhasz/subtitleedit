@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -99,7 +100,7 @@ namespace Nikse.SubtitleEdit.Logic
     /// <summary>
     /// Implementation of the window service that uses dependency injection to create windows.
     /// </summary>
-    public class WindowService : IWindowService
+    public partial class WindowService : IWindowService
     {
         private readonly IServiceProvider _serviceProvider;
 
@@ -114,6 +115,7 @@ namespace Nikse.SubtitleEdit.Logic
             var window = CreateWindow<T>();
 
             configure?.Invoke(window);
+            HookMacMenuScaleOnOpened(window);
 
             // Must run before Show(): ApplyScaleToWindow sets the Windows dark-mode title bar, and
             // DWM does not repaint the caption once the window is on screen - it only picks up the
@@ -146,6 +148,7 @@ namespace Nikse.SubtitleEdit.Logic
             configureViewModel?.Invoke(window, viewModel);
 
             window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            HookMacMenuScaleOnOpened(window);
 
             // Must run before Show() - see the note in ShowWindow<T>. (#12665)
             ApplyRightToLeftSettings(window);
@@ -173,6 +176,8 @@ namespace Nikse.SubtitleEdit.Logic
             var window = (T)w;
             configureViewModel?.Invoke(window, viewModel);
 
+            HookMacMenuScaleOnOpened(window);
+
             // Must run before Show() - see the note in ShowWindow<T>. (#12665)
             ApplyRightToLeftSettings(window);
             UiTheme.ApplyScaleToWindow(window);
@@ -196,6 +201,7 @@ namespace Nikse.SubtitleEdit.Logic
 
             ApplyRightToLeftSettings(window);
             UiTheme.ApplyScaleToWindow(window);
+            HookMacMenuScaleOnOpened(window);
 
             await ShowModalAsync(owner, window);
 
@@ -225,6 +231,7 @@ namespace Nikse.SubtitleEdit.Logic
 
             ApplyRightToLeftSettings(window);
             UiTheme.ApplyScaleToWindow(window);
+            HookMacMenuScaleOnOpened(window);
 
             await ShowModalAsync(owner, window);
 
@@ -979,8 +986,9 @@ namespace Nikse.SubtitleEdit.Logic
             return handle == IntPtr.Zero ? window.IsVisible : IsWindowVisible(handle);
         }
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static partial bool IsWindowVisible(IntPtr hWnd);
 
         /// <summary>
         /// Hands the foreground and the keyboard back to <paramref name="dialog"/> after the
@@ -1135,6 +1143,12 @@ namespace Nikse.SubtitleEdit.Logic
             }
         }
 
+        private static void HookMacMenuScaleOnOpened(Window window)
+        {
+            if (OperatingSystem.IsMacOS())
+                window.Opened += static (s, _) => { if (s is Window w) UiTheme.ApplyMenuScaleToWindow(w); };
+        }
+
         /// <summary>
         /// Keeps <paramref name="child"/> on top of other windows only while <paramref name="owner"/>
         /// or the child itself has focus. Use this instead of a blanket Topmost=true for
@@ -1169,12 +1183,31 @@ namespace Nikse.SubtitleEdit.Logic
             owner.Deactivated += OnFocusChanged;
             child.Activated += OnFocusChanged;
             child.Deactivated += OnFocusChanged;
+            // A topmost owned window promotes its owner chain to WS_EX_TOPMOST on Windows, and
+            // the promotion outlives the child: closing it while it is still topmost - the normal
+            // end of any dialog the user finishes with SE in the foreground - leaves the main
+            // window above every other application until a minimize/restore rebuilds its z-order
+            // state (#14736, the close-time half of #14564). Demote at Closing, not Closed: by
+            // Closed the child's HWND is gone and the owner can no longer be demoted through it.
+            // Windows makes the owners of a window that is made non-topmost non-topmost too, so
+            // this hands the whole stack back.
+            child.Closing += (_, _) =>
+            {
+                if (child.Topmost)
+                {
+                    SetTopmost(child, false, owner);
+                }
+            };
             child.Closed += (_, _) =>
             {
                 owner.Activated -= OnFocusChanged;
                 owner.Deactivated -= OnFocusChanged;
                 child.Activated -= OnFocusChanged;
                 child.Deactivated -= OnFocusChanged;
+
+                // Backstop for a child closed without Closing ever being raised, and for nested
+                // modals, where the promotion can come from more than one level of the chain.
+                ClearStrayTopmost(owner);
             };
 
             SetTopmost(child, suppress?.Invoke() != true && (owner.IsActive || child.IsActive), owner);
@@ -1245,6 +1278,30 @@ namespace Nikse.SubtitleEdit.Logic
             window.Topmost = true;
         }
 
+        /// <summary>
+        /// Drops a stray WS_EX_TOPMOST the OS put on <paramref name="window"/> behind Avalonia's
+        /// back. Windows promotes the owner of a topmost window to topmost as well, and when the
+        /// owned window is destroyed rather than demoted first, that promotion simply stays -
+        /// with Avalonia's own Topmost still false, so nothing in the managed layer clears it,
+        /// and SE floats above every other application for the rest of the session (#14736).
+        /// No-op when the window is meant to be topmost, and off Windows.
+        /// </summary>
+        private static void ClearStrayTopmost(Window window)
+        {
+            if (!OperatingSystem.IsWindows() || window.Topmost)
+            {
+                return;
+            }
+
+            var handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (handle == IntPtr.Zero || (GetWindowLongW(handle, GwlExStyle) & WsExTopmost) == 0)
+            {
+                return;
+            }
+
+            SetWindowPos(handle, HwndNoTopmost, 0, 0, 0, 0, SwpNoSize | SwpNoMove | SwpNoActivate);
+        }
+
         private static void KeepBelowForeignForegroundWindow(Window window, Window reference)
         {
             if (!OperatingSystem.IsWindows())
@@ -1311,21 +1368,23 @@ namespace Nikse.SubtitleEdit.Logic
         private const uint SwpNoSize = 0x0001;
         private const uint SwpNoMove = 0x0002;
         private const uint SwpNoActivate = 0x0010;
+        private static readonly IntPtr HwndNoTopmost = new IntPtr(-2);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
+        [LibraryImport("user32.dll")]
+        private static partial IntPtr GetForegroundWindow();
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+        [LibraryImport("user32.dll")]
+        private static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern int GetWindowLongW(IntPtr hWnd, int nIndex);
+        [LibraryImport("user32.dll")]
+        private static partial int GetWindowLongW(IntPtr hWnd, int nIndex);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+        [LibraryImport("user32.dll")]
+        private static partial IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static partial bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
 
         /// <summary>
         /// Creates a window instance using the service provider.

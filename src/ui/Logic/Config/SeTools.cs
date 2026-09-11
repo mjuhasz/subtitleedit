@@ -178,12 +178,19 @@ public class SeTools
     /// 2.5 hour episode costs about $0.44 instead of $2.32. On by default: the saving is
     /// large, it is money the user spends without ever being asked, and it measured 13.6x
     /// realtime on a 140 minute episode. Google gives no latency guarantee for it, so set
-    /// this to false in Settings.json if a run needs to come back as fast as possible.
+    /// this off in the speech-to-text window if a run needs to come back as fast as possible.
     /// </summary>
     public bool GoogleCloudSttDynamicBatching { get; set; } = true;
 
     public List<string> FindHistory { get; set; } = new List<string>();
     public bool AllowSingleLetterShortcutsInTextbox { get; set; }
+
+    /// <summary>
+    /// Let shortcuts bound to the text-navigation chords (Ctrl+Left/Right, Home/End with or
+    /// without Ctrl/Shift) fire while a text input has focus, instead of reserving those keys
+    /// for caret movement (#11357). Off by default; Settings > Tools (#14654).
+    /// </summary>
+    public bool AllowTextNavigationShortcutsInTextbox { get; set; }
 
     // Auto-break (auto br) - defaults must match libse ToolsSettings
     public bool AutoBreakLineEndingEarly { get; set; } = false;
@@ -265,6 +272,7 @@ public class SeTools
         MultipleReplaceShowDotDotDotButtons = true;
         GridFocusTextboxAfterInsertNew = true;
         AllowSingleLetterShortcutsInTextbox = false;
+        AllowTextNavigationShortcutsInTextbox = false;
         TextToSpeechPromptMergeContinuationLines = true;
         TextToSpeechPromptSkipNoiseLines = true;
         TextToSpeechPromptDetectSpeakers = true;
