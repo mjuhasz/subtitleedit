@@ -122,7 +122,7 @@ public static partial class UiTheme
             _themeChangeSubscription = null;
         }
 
-        RemoveLighterDark();
+        RemoveCustomThemeOverrides();
 
         if (themeSetting == ThemeNameSystem)
         {
@@ -179,11 +179,17 @@ public static partial class UiTheme
         // while this handler is subscribed (the headless tests do that - the subscription
         // outlives the ApplySettings call that made it and turned an unrelated theme test
         // order-dependent).
-        RemoveLighterDark();
+        RemoveCustomThemeOverrides();
         if (ThemeName == ThemeNameDark)
         {
             ApplyLighterDark();
         }
+
+        // Mirror the mac-chrome refresh SetCurrentTheme() does on an explicit theme switch:
+        // without this, an OS-level dark/light flip (Settings theme = "System") left the mac
+        // button/menu chrome stuck on whichever variant was active when the app started.
+        ApplyMacButtonStyle();
+        ApplyMacMenuChromeStyle(Se.Settings.Appearance.LayoutScale);
 
         SystemThemeChangedCallback?.Invoke();
     }
@@ -851,7 +857,10 @@ public static partial class UiTheme
         Application.Current.Styles.Add(_themeOverrideStyle);
     }
 
-    private static void RemoveLighterDark()
+    // Despite the name, this is the shared teardown for all three custom theme overrides
+    // (lighter dark, classic gray, pastel) - it's purely reference-based, so it correctly
+    // removes whichever one is currently active regardless of which Apply* installed it.
+    private static void RemoveCustomThemeOverrides()
     {
         if (_resourceOverrides != null)
         {

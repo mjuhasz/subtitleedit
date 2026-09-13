@@ -7,9 +7,10 @@
         <Setter Property="logic:TableViewScrollBarBehavior.EnableTroughPaging" Value="True"/>
     </Style>
     <Styles.Resources>
-        <!-- Formerly supplied by the retired Avalonia.Controls.DataGrid theme; the
-             TableView header theme still resolves this key (and SE's custom themes
-             override the header background directly). -->
+        <!-- SystemAltHighColor is a real Fluent legacy-palette resource (Avalonia.Themes.Fluent's
+             Accents/BaseColorsPalette.xaml) that varies with the theme variant; SE redefines it
+             under this key so the TableView header theme can bind to it live via DynamicResource
+             (and SE's custom themes override the header background directly). -->
         <SolidColorBrush x:Key="DataGridColumnHeaderBackgroundBrush" Color="{DynamicResource SystemAltHighColor}"/>
         <SolidColorBrush x:Key="ListBoxItemSelectedUnfocusedBackgroundBrush"
                          Color="{DynamicResource SystemAccentColor}"

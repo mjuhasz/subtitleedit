@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
@@ -100,10 +101,13 @@ public static class UiUtil
         {
             Setters =
             {
-                // Match the DataGrid header background: the Fluent DataGrid resource by
-                // default; SE's custom themes (lighter dark, classic gray, pastel) override
-                // both header types with the same brush via app styles in UiTheme.
-                new Setter(TableViewColumnHeader.BackgroundProperty, GetDataGridHeaderBackgroundBrush()),
+                // Match the DataGrid header background: the Fluent legacy palette resource by
+                // default (bound live so it tracks theme/resource changes on already-open
+                // windows - a baked-once brush here left secondary dialogs' headers stuck at
+                // whichever theme was active when they were built, e.g. after switching to
+                // Light); SE's custom themes (lighter dark, classic gray, pastel) override both
+                // header types with the same brush via app styles in UiTheme.
+                new Setter(TableViewColumnHeader.BackgroundProperty, new DynamicResourceExtension("DataGridColumnHeaderBackgroundBrush")),
                 new Setter(TableViewColumnHeader.PaddingProperty, new Thickness(4, 6, 4, 5)),
                 // The faint grid-line brush, not the full border brush: with grid lines set
                 // to None these are the only separators in the grid, and at 0.5 opacity they
@@ -117,19 +121,6 @@ public static class UiUtil
                 new Setter(TableViewColumnHeader.TemplateProperty, TableViewColumnHeaderTemplate),
             }
         };
-    }
-
-    private static IBrush GetDataGridHeaderBackgroundBrush()
-    {
-        if (Application.Current != null &&
-            Application.Current.TryGetResource("DataGridColumnHeaderBackgroundBrush",
-                Application.Current.ActualThemeVariant, out var resource) &&
-            resource is IBrush brush)
-        {
-            return brush;
-        }
-
-        return Brushes.Transparent;
     }
 
     // Mirrors the built-in header template (content + resize thumb) but routes the border
