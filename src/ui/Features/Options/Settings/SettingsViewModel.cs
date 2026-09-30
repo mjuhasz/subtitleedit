@@ -1723,6 +1723,10 @@ public partial class SettingsViewModel : ObservableObject
 
     private void SaveSettings()
     {
+        // The profiles below are rebuilt from _profilesForEdit, so make sure the selected
+        // profile holds the rule values that are about to become the active ones.
+        RuleValueChanged();
+
         var general = Se.Settings.General;
         var appearance = Se.Settings.Appearance;
         var video = Se.Settings.Video;
@@ -3387,6 +3391,18 @@ public partial class SettingsViewModel : ObservableObject
         {
             _skipRuleValueChanged = false;
         }
+    }
+
+    internal void NumericRuleValueChanged()
+    {
+        if (_skipRuleValueChanged)
+        {
+            return;
+        }
+
+        // NumericUpDown raises ValueChanged before its two-way binding writes the new value
+        // back to this view model, so copying right away would store the previous value.
+        Dispatcher.UIThread.Post(RuleValueChanged);
     }
 
     internal void RuleValueChanged()

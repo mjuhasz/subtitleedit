@@ -378,24 +378,24 @@ public class SettingsPage : UserControl
                 }
             }),
 
-            new SettingsItem(Se.Language.Options.Settings.SingleLineMaxLength, () => MakeNumericUpDownInt(nameof(_vm.SingleLineMaxLength), _vm.RuleValueChanged)),
-            new SettingsItem(Se.Language.Options.Settings.OptimalCharsPerSec, () => MakeNumericUpDown(nameof(_vm.OptimalCharsPerSec), _vm.RuleValueChanged)),
-            new SettingsItem(Se.Language.Options.Settings.MaxCharsPerSec, () => MakeNumericUpDown(nameof(_vm.MaxCharsPerSec), _vm.RuleValueChanged)),
-            new SettingsItem(Se.Language.Options.Settings.MaxWordsPerMin, () => MakeNumericUpDown(nameof(_vm.MaxWordsPerMin), _vm.RuleValueChanged)),
-            new SettingsItem(Se.Language.Options.Settings.MinDurationMs, () => MakeNumericUpDownInt(nameof(_vm.MinDurationMs), _vm.RuleValueChanged)),
-            new SettingsItem(Se.Language.Options.Settings.MaxDurationMs, () => MakeNumericUpDownInt(nameof(_vm.MaxDurationMs), _vm.RuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.SingleLineMaxLength, () => MakeNumericUpDownInt(nameof(_vm.SingleLineMaxLength), _vm.NumericRuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.OptimalCharsPerSec, () => MakeNumericUpDown(nameof(_vm.OptimalCharsPerSec), _vm.NumericRuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.MaxCharsPerSec, () => MakeNumericUpDown(nameof(_vm.MaxCharsPerSec), _vm.NumericRuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.MaxWordsPerMin, () => MakeNumericUpDown(nameof(_vm.MaxWordsPerMin), _vm.NumericRuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.MinDurationMs, () => MakeNumericUpDownInt(nameof(_vm.MinDurationMs), _vm.NumericRuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.MaxDurationMs, () => MakeNumericUpDownInt(nameof(_vm.MaxDurationMs), _vm.NumericRuleValueChanged)),
             new SettingsItem(Se.Language.Options.Settings.MinGapMs + " " + Se.Language.Options.Settings.MinGapFrames, _vm, nameof(_vm.MinGapLabel), () => new StackPanel
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 5,
                 Children =
                 {
-                    MakeNumericUpDownInt(nameof(_vm.MinGapMs), _vm.RuleValueChanged)
+                    MakeNumericUpDownInt(nameof(_vm.MinGapMs), _vm.NumericRuleValueChanged)
                         .WithBindIsVisible(_vm, nameof(_vm.IsMsMode)),
                     UiUtil.MakeButtonBrowse(_vm.CalculateMinGapMsCommand,
                             accessibleName: Se.Language.Options.Settings.MinGapCalculateDotDotDot)
                         .WithBindIsVisible(_vm, nameof(_vm.IsMsMode)),
-                    MakeNumericUpDownInt(nameof(_vm.MinGapFrames), _vm.RuleValueChanged)
+                    MakeNumericUpDownInt(nameof(_vm.MinGapFrames), _vm.NumericRuleValueChanged)
                         .WithBindIsVisible(_vm, nameof(_vm.UseFrameMode)),
                     new TextBlock
                     {
@@ -408,8 +408,8 @@ public class SettingsPage : UserControl
             {
                 EnglishLabel = EnglishLabelLookup.English.Options.Settings.MinGapMs + " " + EnglishLabelLookup.English.Options.Settings.MinGapFrames,
             },
-            new SettingsItem(Se.Language.Options.Settings.MaxLines,() => MakeNumericUpDownInt(nameof(_vm.MaxLines), _vm.RuleValueChanged)),
-            new SettingsItem(Se.Language.Options.Settings.UnbreakSubtitlesShortThan, () => MakeNumericUpDownInt(nameof(_vm.UnbreakLinesShorterThan), _vm.RuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.MaxLines,() => MakeNumericUpDownInt(nameof(_vm.MaxLines), _vm.NumericRuleValueChanged)),
+            new SettingsItem(Se.Language.Options.Settings.UnbreakSubtitlesShortThan, () => MakeNumericUpDownInt(nameof(_vm.UnbreakLinesShorterThan), _vm.NumericRuleValueChanged)),
 
             new SettingsItem(Se.Language.Options.Settings.DialogStyle, () => MakeComboBoxDialogStyle()),
             new SettingsItem(Se.Language.Options.Settings.ContinuationStyle, () => new StackPanel
