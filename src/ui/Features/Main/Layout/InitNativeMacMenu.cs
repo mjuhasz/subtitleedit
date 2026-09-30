@@ -107,7 +107,7 @@ public static class InitNativeMacMenu
 
         var prefsItem = new NativeMenuItem(Clean(Se.Language.Main.Menu.Settings));
         prefsItem.Gesture = new KeyGesture(Key.OemComma, KeyModifiers.Meta);
-        prefsItem.Click += (_, _) => GetVm()?.CommandShowSettingsCommand.Execute(null);
+        prefsItem.Click += (_, _) => MacMenuShortcutGuard.Run(() => GetVm()?.CommandShowSettingsCommand.Execute(null));
         appMenu.Items.Add(prefsItem);
 
         NativeMenu.SetMenu(app, appMenu);
@@ -149,6 +149,7 @@ public static class InitNativeMacMenu
                     }
 
                     InstallDockMenu();
+                    MacMenuBarRefresh.AfterActivation();
                 }, Avalonia.Threading.DispatcherPriority.Background);
             };
             window.Closed += (_, _) =>
@@ -543,7 +544,7 @@ public static class InitNativeMacMenu
             item.Gesture = gesture;
         }
 
-        item.Click += (_, _) =>
+        item.Click += (_, _) => MacMenuShortcutGuard.Run(() =>
         {
             if (state.Window is not { } window)
             {
@@ -559,7 +560,7 @@ public static class InitNativeMacMenu
             }
 
             action(window);
-        };
+        });
 
         return item;
     }
@@ -889,10 +890,10 @@ public static class InitNativeMacMenu
     {
         var state = _building!;
         var item = new NativeMenuItem(header ?? string.Empty);
-        item.Click += (_, _) => { var v = state.Vm; if (v != null)
+        item.Click += (_, _) => MacMenuShortcutGuard.Run(() => { var v = state.Vm; if (v != null)
         {
             getCmd(v).Execute(null);
-        } };
+        } });
         state.GestureItems.Add((getCmd, item));
         return item;
     }
@@ -911,10 +912,10 @@ public static class InitNativeMacMenu
         var state = _building!;
         var item = new NativeMenuItem(header ?? string.Empty);
         item.ToggleType = MenuItemToggleType.CheckBox;
-        item.Click += (_, _) => { var v = state.Vm; if (v != null)
+        item.Click += (_, _) => MacMenuShortcutGuard.Run(() => { var v = state.Vm; if (v != null)
         {
             getCmd(v).Execute(null);
-        } };
+        } });
         state.Toggles.Add((item, isChecked, propertyNames));
         state.GestureItems.Add((getCmd, item));
         return item;
