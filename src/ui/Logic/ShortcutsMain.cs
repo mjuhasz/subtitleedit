@@ -228,6 +228,7 @@ public static class ShortcutsMain
         { nameof(MainViewModel.ShowToolsRemoveTextForHearingImpairedCommand), Se.Language.General.RemoveTextForHearingImpaired },
         { nameof(MainViewModel.ShowToolsJoinCommand), Se.Language.Options.Shortcuts.JoinSubtitles },
         { nameof(MainViewModel.ShowToolsSplitCommand), Se.Language.Options.Shortcuts.SplitSubtitle },
+        { nameof(MainViewModel.ShowToolsConvertActorsCommand), Se.Language.Main.Menu.ConvertActors },
 
         // Spell check
         { nameof(MainViewModel.ShowSpellCheckCommand), Se.Language.Options.Shortcuts.SpellCheck },
@@ -737,6 +738,7 @@ public static class ShortcutsMain
         AddShortcut(shortcuts, vm.ShowToolsRemoveTextForHearingImpairedCommand, nameof(vm.ShowToolsRemoveTextForHearingImpairedCommand), ShortcutCategory.General, ShortcutGroup.Tools);
         AddShortcut(shortcuts, vm.ShowToolsJoinCommand, nameof(vm.ShowToolsJoinCommand), ShortcutCategory.General, ShortcutGroup.Tools);
         AddShortcut(shortcuts, vm.ShowToolsSplitCommand, nameof(vm.ShowToolsSplitCommand), ShortcutCategory.General, ShortcutGroup.Tools);
+        AddShortcut(shortcuts, vm.ShowToolsConvertActorsCommand, nameof(vm.ShowToolsConvertActorsCommand), ShortcutCategory.General, ShortcutGroup.Tools);
 
         // Spell check
         AddShortcut(shortcuts, vm.ShowSpellCheckCommand, nameof(vm.ShowSpellCheckCommand), ShortcutCategory.General, ShortcutGroup.Tools);
