@@ -538,6 +538,16 @@ public class FixCommonErrorsWindow : Window
                 _vm.SelectAndScrollTo(item);
             }
         };
+        // AlwaysSelected picks row 0 as soon as the list fills (before step 2 is laid out, so
+        // that scroll goes nowhere); clicking row 0 afterwards is then no selection change and
+        // SelectionChanged never fires. Follow the clicked row on every tap as well.
+        dataGridFixes.AddHandler(InputElement.TappedEvent, (_, e) =>
+        {
+            if ((e.Source as StyledElement)?.DataContext is FixDisplayItem item)
+            {
+                _vm.SelectAndScrollTo(item);
+            }
+        }, handledEventsToo: true);
 
         var leftButtons = new StackPanel
         {
