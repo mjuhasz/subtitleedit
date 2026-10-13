@@ -23990,7 +23990,11 @@ public partial class MainViewModel :
         foreach (var p in sub)
         {
             mergedVobSubPacks.Add(new VobSubMergedPack(p.GetData(matroskaSubtitleInfo),
-                TimeSpan.FromMilliseconds(p.Start), 32, null));
+                TimeSpan.FromMilliseconds(p.Start), 32, null)
+            {
+                ScreenWidth = idx.ScreenWidth,
+                ScreenHeight = idx.ScreenHeight,
+            });
             if (mergedVobSubPacks.Count > 0)
             {
                 mergedVobSubPacks[mergedVobSubPacks.Count - 1].EndTime = TimeSpan.FromMilliseconds(p.End);

@@ -18,6 +18,13 @@ namespace Nikse.SubtitleEdit.Core.VobSub
         /// </summary>
         public List<string> IdxLanguageCodes { get; private set; } = new List<string>();
 
+        /// <summary>
+        /// Screen size from the idx "size:" line, or 0 when the idx is missing or has none.
+        /// Passed on to every pack from <see cref="MergeVobSubPacks"/>.
+        /// </summary>
+        public int IdxScreenWidth { get; private set; }
+        public int IdxScreenHeight { get; private set; }
+
         private const int PacketizedElementaryStreamMaximumLength = 2028;
 
         /// <summary>
@@ -227,6 +234,8 @@ namespace Nikse.SubtitleEdit.Core.VobSub
         public void OpenSubIdx(string vobSubFileName, string idxFileName)
         {
             VobSubPacks = new List<VobSubPack>();
+            IdxScreenWidth = 0;
+            IdxScreenHeight = 0;
 
             if (!string.IsNullOrEmpty(idxFileName) && File.Exists(idxFileName))
             {
@@ -234,6 +243,8 @@ namespace Nikse.SubtitleEdit.Core.VobSub
                 IdxPalette = idx.Palette;
                 IdxLanguages = idx.Languages;
                 IdxLanguageCodes = idx.LanguageCodes;
+                IdxScreenWidth = idx.ScreenWidth;
+                IdxScreenHeight = idx.ScreenHeight;
                 if (idx.IdxParagraphs.Count > 0)
                 {
                     var buffer = new byte[0x800]; // 2048
@@ -387,6 +398,15 @@ namespace Nikse.SubtitleEdit.Core.VobSub
             }
 
             FixPackTimes(list);
+
+            if (IdxScreenWidth > 0 && IdxScreenHeight > 0)
+            {
+                foreach (var pack in list)
+                {
+                    pack.ScreenWidth = IdxScreenWidth;
+                    pack.ScreenHeight = IdxScreenHeight;
+                }
+            }
 
             return list;
         }
