@@ -267,8 +267,6 @@ namespace Nikse.SubtitleEdit.Core.Common
         /// </summary>
         private static string JoinTagBrokenOverLineBreak(string text, char start, char end)
         {
-            const int maxTagLength = 50;
-
             var startIdx = text.IndexOf(start);
             while (startIdx >= 0)
             {
@@ -313,7 +311,8 @@ namespace Nikse.SubtitleEdit.Core.Common
                 var line2StartIdx = lines[1].IndexOf(start);
                 var line2EndIdx = lines[1].IndexOf(end);
 
-                if (line1StartIdx != -1 && line1EndIdx == -1 && line2EndIdx != -1 && line2StartIdx == -1)
+                if (line1StartIdx != -1 && line1EndIdx == -1 && line2EndIdx != -1 && line2StartIdx == -1 &&
+                    lines[0].Length - line1StartIdx - 1 + line2EndIdx <= maxTagLength)
                 {
                     var contentLine1 = lines[0].Substring(line1StartIdx + 1);
                     var contentLine2 = lines[1].Substring(0, line2EndIdx);
@@ -484,6 +483,9 @@ namespace Nikse.SubtitleEdit.Core.Common
 
             return actor;
         }
+
+        // A bracket pair spanning more text than this is a parenthetical remark, not a speaker tag.
+        private const int maxTagLength = 50;
 
         private static readonly string[] CommonTitles = { "Mr.", "Mrs.", "Dr." };
 
