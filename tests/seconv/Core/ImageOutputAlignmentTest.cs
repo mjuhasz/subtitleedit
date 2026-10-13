@@ -156,4 +156,26 @@ public class ImageOutputAlignmentTest : IDisposable
         var untagged = packs[1].SubPicture.ImageDisplayArea;
         Assert.True(untagged.Top > 288, $"untagged line should stay at the bottom, was y={untagged.Top}");
     }
+
+    [Fact]
+    public async Task OpenSubIdx_PalIdx_PacksReportIdxScreenSize()
+    {
+        // The idx declares "size: 720x576"; the packs used to report a hardcoded 720x480,
+        // which put bottom lines (y > 480) off-screen in OCR and export.
+        var subFile = await Convert(SrtContent, ".srt", "vobsub", "*.sub", (720, 576));
+
+        var parser = new VobSubParser(true);
+        parser.OpenSubIdx(subFile, Path.ChangeExtension(subFile, ".idx"));
+        Assert.Equal(720, parser.IdxScreenWidth);
+        Assert.Equal(576, parser.IdxScreenHeight);
+
+        var packs = parser.MergeVobSubPacks();
+        Assert.NotEmpty(packs);
+        foreach (var pack in packs)
+        {
+            var size = pack.GetScreenSize();
+            Assert.Equal(720, size.Width);
+            Assert.Equal(576, size.Height);
+        }
+    }
 }

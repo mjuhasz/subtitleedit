@@ -41,8 +41,12 @@ public static class MatroskaImageSubtitleExtractor
         idx = new Idx(track.GetCodecPrivate().SplitToLines());
         foreach (var p in sub)
         {
-            mergedVobSubPacks.Add(new VobSubMergedPack(p.GetData(track), TimeSpan.FromMilliseconds(p.Start), 32, null));
-            mergedVobSubPacks[mergedVobSubPacks.Count - 1].EndTime = TimeSpan.FromMilliseconds(p.End);
+            mergedVobSubPacks.Add(new VobSubMergedPack(p.GetData(track), TimeSpan.FromMilliseconds(p.Start), 32, null)
+            {
+                EndTime = TimeSpan.FromMilliseconds(p.End),
+                ScreenWidth = idx.ScreenWidth,
+                ScreenHeight = idx.ScreenHeight,
+            });
 
             // fix overlapping (some versions of Handbrake make overlapping time codes - thx Hawke)
             if (mergedVobSubPacks.Count > 1 &&
