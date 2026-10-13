@@ -163,7 +163,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                     continue;
                 }
 
-                var actor = s.Substring(0, startIdx).Trim(' ', '-', '"');
+                var actor = TrimActor(s.Substring(0, startIdx));
                 // AND, not assignment: selectFix is declared outside the per-line loop, so a later line's valid speaker used to mask an earlier line whose "actor" was really a clock ("It's 12:30 now.") - pre-checking a fix that destroys text.
                 selectFix &= IsActor(actor);
                 if (changeCasing.HasValue)
@@ -229,6 +229,17 @@ namespace Nikse.SubtitleEdit.Core.Common
                 NextParagraph = nextParagraph,
                 Selected = selectFix,
             };
+        }
+
+        /// <summary>
+        /// Trims spaces and dialog hyphens around an actor, and stray quotes. Quotes that come in
+        /// pairs are part of the text - (hums "Let It Snow") - and are kept, trimming them would
+        /// drop the closing quote from the converted line.
+        /// </summary>
+        private static string TrimActor(string s)
+        {
+            var quoteCount = s.Count(c => c == '"');
+            return quoteCount > 0 && quoteCount % 2 == 0 ? s.Trim(' ', '-') : s.Trim(' ', '-', '"');
         }
 
         private static string StripPositionAndItalic(string s)
@@ -353,7 +364,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                 // it from the text.
                 if (startIdx != -1 && endIdx > startIdx)
                 {
-                    var actor = s.Substring(startIdx + 1, endIdx - startIdx - 1).Trim(' ', '-', '"');
+                    var actor = TrimActor(s.Substring(startIdx + 1, endIdx - startIdx - 1));
                     // AND, not assignment: selectFix is declared outside the per-line loop, so a later line's valid speaker used to mask an earlier line whose "actor" was really a clock ("It's 12:30 now.") - pre-checking a fix that destroys text.
                     selectFix &= IsActor(actor);
                     if (changeCasing.HasValue)
@@ -383,17 +394,12 @@ namespace Nikse.SubtitleEdit.Core.Common
                         actor = SetColor(_subtitleFormat, color.Value, actor);
                     }
 
-                    if (ToSquare)
+                    if (ToSquare || ToParentheses || ToColon)
                     {
-                        s = s.Substring(0, startIdx) + actor + " " + s.Substring(endIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToParentheses)
-                    {
-                        s = s.Substring(0, startIdx) + actor + " " + s.Substring(endIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToColon)
-                    {
-                        s = s.Substring(0, startIdx) + actor + " " + s.Substring(endIdx + 1).TrimStart(' ');
+                        var rest = s.Substring(endIdx + 1).TrimStart(' ');
+                        // no separator when nothing follows, or only a closing tag like </i>
+                        var separator = rest.Length == 0 || rest.StartsWith("</", StringComparison.Ordinal) ? string.Empty : " ";
+                        s = s.Substring(0, startIdx) + actor + separator + rest;
                     }
 
                     if (lineIdx == 0)
