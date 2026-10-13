@@ -549,4 +549,13 @@ public class ActorConverterTest
         var result = c.FixActorsFromBeforeColon(p, ':', null, null);
         Assert.Equal("-[MICHAEL] What's our depth?" + Environment.NewLine + "-[KITT] <i>impossible to tell.</i>", result.Paragraph.Text);
     }
+
+    [Fact]
+    public void ParenthesesToSquare_KeepsClosingQuote()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "<i>(hums \"Let It Snow\")</i>" };
+        var result = c.FixActors(p, '(', ')', null, null);
+        Assert.Equal("<i>[hums \"Let It Snow\"]</i>", result.Paragraph.Text);
+    }
 }
