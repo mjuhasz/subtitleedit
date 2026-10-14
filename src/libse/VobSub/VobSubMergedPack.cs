@@ -18,6 +18,13 @@ namespace Nikse.SubtitleEdit.Core.VobSub
         /// <summary>The raw DVD sub picture unit (the merged PES payloads).</summary>
         public byte[] SubPictureData { get; }
 
+        /// <summary>
+        /// Screen size from the idx "size:" line (e.g. 720x576 for PAL). Zero means unknown,
+        /// in which case <see cref="GetScreenSize"/> falls back to NTSC 720x480.
+        /// </summary>
+        public int ScreenWidth { get; set; }
+        public int ScreenHeight { get; set; }
+
         public VobSubMergedPack(byte[] subPictureData, TimeSpan presentationTimestamp, int streamId, IdxParagraph idxLine)
         {
             SubPictureData = subPictureData;
@@ -121,6 +128,11 @@ namespace Nikse.SubtitleEdit.Core.VobSub
         }
         public SKSize GetScreenSize()
         {
+            if (ScreenWidth > 0 && ScreenHeight > 0)
+            {
+                return new SKSize(ScreenWidth, ScreenHeight);
+            }
+
             return new SKSize(720, 480);
         }
 

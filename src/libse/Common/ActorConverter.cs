@@ -4,6 +4,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Nikse.SubtitleEdit.Core.Common
 {
@@ -95,6 +96,32 @@ namespace Nikse.SubtitleEdit.Core.Common
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
             }
 
+            // Custom 4.0.15 behavior (inline formats only): a leading dialog hyphen is put on every
+            // converted line when the paragraph reads as dialog - a non-actor line already opens with
+            // '-' (after stripping {\an8} and <i>), or the second line names its own speaker.
+            var hasDialogHyphen = false;
+            if (!ToActor && lines.Count > 1)
+            {
+                foreach (var line in lines)
+                {
+                    var stripped = StripPositionAndItalic(line.Trim());
+                    if (stripped.StartsWith("-", StringComparison.Ordinal) && stripped.IndexOf(ch) <= 0)
+                    {
+                        hasDialogHyphen = true;
+                        break;
+                    }
+                }
+
+                if (!hasDialogHyphen)
+                {
+                    var secondLine = StripPositionAndItalic(lines[1].Trim()).TrimStart(' ', '-');
+                    if (secondLine.IndexOf(ch) > 0)
+                    {
+                        hasDialogHyphen = true;
+                    }
+                }
+            }
+
             Paragraph nextParagraph = null;
             var selectFix = true;
             var actorAssigned = false;
@@ -103,6 +130,23 @@ namespace Nikse.SubtitleEdit.Core.Common
             {
                 // index into the trimmed line - leading whitespace goes with the actor it precedes
                 var s = line.Trim();
+
+                // A positioning tag like {\an8} rides in front of the whole line, ahead of the dialog hyphen.
+                var posTag = string.Empty;
+                var posMatch = Regex.Match(s, @"^\{\\an\d+\}");
+                if (posMatch.Success)
+                {
+                    posTag = posMatch.Value;
+                    s = s.Substring(posTag.Length);
+                }
+
+                // An <i>...</i> wrapper around the whole line is unwrapped now and put back around the text.
+                var hasItalic = s.StartsWith("<i>", StringComparison.Ordinal) && s.EndsWith("</i>", StringComparison.Ordinal);
+                if (hasItalic)
+                {
+                    s = s.Substring(3, s.Length - 7);
+                }
+
                 var startIdx = s.IndexOf(ch);
                 if (startIdx <= 0)
                 {
@@ -110,16 +154,16 @@ namespace Nikse.SubtitleEdit.Core.Common
                     if (nextParagraph != null)
                     {
                         nextParagraph.Text = (nextParagraph.Text + Environment.NewLine + s).Trim();
-                    }
-                    else
-                    {
-                        textLines.Add(s);
+                        continue;
                     }
 
+                    var keptHyphen = hasDialogHyphen && !s.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
+                    var kept = hasItalic ? "<i>" + s + "</i>" : s;
+                    textLines.Add(posTag + keptHyphen + kept);
                     continue;
                 }
 
-                var actor = s.Substring(0, startIdx).Trim(' ', '-', '"');
+                var actor = TrimActor(s.Substring(0, startIdx));
                 // AND, not assignment: selectFix is declared outside the per-line loop, so a later line's valid speaker used to mask an earlier line whose "actor" was really a clock ("It's 12:30 now.") - pre-checking a fix that destroys text.
                 selectFix &= IsActor(actor);
                 if (changeCasing.HasValue)
@@ -148,14 +192,20 @@ namespace Nikse.SubtitleEdit.Core.Common
                 var text = s.Substring(startIdx + 1).TrimStart(' ');
                 if (!ToActor)
                 {
-                    textLines.Add(actor + " " + text);
+                    if (hasItalic)
+                    {
+                        text = "<i>" + text + "</i>";
+                    }
+
+                    var dialogHyphen = hasDialogHyphen ? "-" : string.Empty;
+                    textLines.Add(posTag + dialogHyphen + actor + " " + text);
                 }
                 else if (!actorAssigned)
                 {
                     // The first name found goes in the actor column...
                     p.Actor = actor;
                     actorAssigned = true;
-                    textLines.Add(text);
+                    textLines.Add(posTag + text);
                 }
                 else
                 {
@@ -164,7 +214,14 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
             }
 
-            p.Text = string.Join(Environment.NewLine, textLines).Trim();
+            var joined = string.Join(Environment.NewLine, textLines).Trim();
+            if (!ToActor && !hasDialogHyphen)
+            {
+                // Per-line <i>...</i>\n<i>...</i> collapses into one spanning italic once no dash splits them.
+                joined = joined.Replace("</i>" + Environment.NewLine + "<i>", Environment.NewLine);
+            }
+
+            p.Text = joined;
 
             return new ActorConverterResult
             {
@@ -172,6 +229,28 @@ namespace Nikse.SubtitleEdit.Core.Common
                 NextParagraph = nextParagraph,
                 Selected = selectFix,
             };
+        }
+
+        /// <summary>
+        /// Trims spaces and dialog hyphens around an actor, and stray quotes. Quotes that come in
+        /// pairs are part of the text - (hums "Let It Snow") - and are kept, trimming them would
+        /// drop the closing quote from the converted line.
+        /// </summary>
+        private static string TrimActor(string s)
+        {
+            var quoteCount = s.Count(c => c == '"');
+            return quoteCount > 0 && quoteCount % 2 == 0 ? s.Trim(' ', '-') : s.Trim(' ', '-', '"');
+        }
+
+        private static string StripPositionAndItalic(string s)
+        {
+            s = Regex.Replace(s, @"^\{\\an\d+\}", string.Empty);
+            if (s.StartsWith("<i>", StringComparison.Ordinal))
+            {
+                s = s.Substring(3);
+            }
+
+            return s;
         }
 
         private static bool HasActor(string line, char ch)
@@ -183,13 +262,13 @@ namespace Nikse.SubtitleEdit.Core.Common
         /// A line splitter can break a tag in half - "Princess Peach on (Speaker\n2) Super Smash
         /// Bros." - and the per-line scan in <see cref="FixActors"/> then finds no complete pair on
         /// either line, so the paragraph was silently left alone. Line breaks inside a bracket pair
-        /// are folded to a space, pulling the two half-lines together. Capped at name length: a
-        /// bracket pair spanning that much text is a parenthetical remark, not a speaker tag.
+        /// are folded to a space, pulling the two half-lines together. Only used when the tag becomes
+        /// a name (actor or colon) - square/parentheses conversion keeps the line break. Capped at
+        /// name length: a bracket pair spanning that much text is a parenthetical remark, not a
+        /// speaker tag.
         /// </summary>
         private static string JoinTagBrokenOverLineBreak(string text, char start, char end)
         {
-            const int maxTagLength = 50;
-
             var startIdx = text.IndexOf(start);
             while (startIdx >= 0)
             {
@@ -200,11 +279,13 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
 
                 var inner = text.Substring(startIdx + 1, endIdx - startIdx - 1);
-                if (inner.Length <= maxTagLength &&
+                // line breaks don't count, so CRLF and LF text get the same cap as the two-line branch in FixActors
+                if (inner.Count(c => c != '\r' && c != '\n') <= maxTagLength &&
                     inner.IndexOf(start) < 0 &&
                     (inner.Contains('\n') || inner.Contains('\r')))
                 {
-                    var joined = string.Join(" ", inner.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+                    // only the line break and the spaces around it - other whitespace (a non-breaking space) is part of the name
+                    var joined = Regex.Replace(inner, @" *(?:\r\n|\r|\n)+ *", " ");
                     text = text.Substring(0, startIdx + 1) + joined + text.Substring(endIdx);
                     endIdx = startIdx + 1 + joined.Length;
                 }
@@ -219,11 +300,61 @@ namespace Nikse.SubtitleEdit.Core.Common
         {
             var p = new Paragraph(paragraph, false);
             Paragraph nextParagraph = null;
-            p.Text = JoinTagBrokenOverLineBreak(p.Text, start, end);
+            if (!ToSquare && !ToParentheses)
+            {
+                p.Text = JoinTagBrokenOverLineBreak(p.Text, start, end);
+            }
+
             var lines = p.Text.SplitToLines();
             if (lines.Count > 2)
             {
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
+            }
+
+            // Handle multi-line bracket: open bracket on line 1, close bracket on line 2
+            if (lines.Count == 2)
+            {
+                var line1StartIdx = lines[0].IndexOf(start);
+                var line1EndIdx = lines[0].IndexOf(end);
+                var line2StartIdx = lines[1].IndexOf(start);
+                var line2EndIdx = lines[1].IndexOf(end);
+
+                if (line1StartIdx != -1 && line1EndIdx == -1 && line2EndIdx != -1 && line2StartIdx == -1 &&
+                    lines[0].Length - line1StartIdx - 1 + line2EndIdx <= maxTagLength)
+                {
+                    var contentLine1 = lines[0].Substring(line1StartIdx + 1);
+                    var contentLine2 = lines[1].Substring(0, line2EndIdx);
+                    var actor = TrimActor(contentLine1.Trim() + " " + contentLine2.Trim());
+                    var selected = IsActor(actor);
+
+                    if (changeCasing.HasValue)
+                    {
+                        contentLine1 = SetCasing(_subtitleFormat, changeCasing, contentLine1);
+                        contentLine2 = SetCasing(_subtitleFormat, changeCasing, contentLine2);
+                    }
+
+                    if (ToSquare)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '[' + contentLine1;
+                        lines[1] = contentLine2 + ']' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToParentheses)
+                    {
+                        lines[0] = lines[0].Substring(0, line1StartIdx) + '(' + contentLine1;
+                        lines[1] = contentLine2 + ')' + lines[1].Substring(line2EndIdx + 1);
+                    }
+                    else if (ToActor)
+                    {
+                        lines[0] = (lines[0].Substring(0, line1StartIdx) + lines[0].Substring(line1StartIdx + 1)).Trim();
+                        lines[1] = (lines[1].Substring(0, line2EndIdx) + lines[1].Substring(line2EndIdx + 1)).Trim();
+                        p.Text = (lines[0] + Environment.NewLine + lines[1]).Trim();
+                        p.Actor = actor;
+                        return new ActorConverterResult { Paragraph = p, Selected = selected };
+                    }
+
+                    p.Text = lines[0] + Environment.NewLine + lines[1];
+                    return new ActorConverterResult { Paragraph = p, Selected = selected };
+                }
             }
 
             var lineIdx = 0;
@@ -240,9 +371,16 @@ namespace Nikse.SubtitleEdit.Core.Common
                 // it from the text.
                 if (startIdx != -1 && endIdx > startIdx)
                 {
-                    var actor = s.Substring(startIdx + 1, endIdx - startIdx - 1).Trim(' ', '-', '"');
+                    var content = s.Substring(startIdx + 1, endIdx - startIdx - 1);
+                    var actor = TrimActor(content);
                     // AND, not assignment: selectFix is declared outside the per-line loop, so a later line's valid speaker used to mask an earlier line whose "actor" was really a clock ("It's 12:30 now.") - pre-checking a fix that destroys text.
                     selectFix &= IsActor(actor);
+                    if (ToSquare || ToParentheses)
+                    {
+                        // bracket to bracket only swaps the brackets - a trailing "--" or a lone quote is part of the text
+                        actor = content.Trim(' ');
+                    }
+
                     if (changeCasing.HasValue)
                     {
                         actor = SetCasing(_subtitleFormat, changeCasing, actor);
@@ -270,17 +408,12 @@ namespace Nikse.SubtitleEdit.Core.Common
                         actor = SetColor(_subtitleFormat, color.Value, actor);
                     }
 
-                    if (ToSquare)
+                    if (ToSquare || ToParentheses || ToColon)
                     {
-                        s = s.Substring(0, startIdx) + actor + " " + s.Substring(endIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToParentheses)
-                    {
-                        s = s.Substring(0, startIdx) + actor + " " + s.Substring(endIdx + 1).TrimStart(' ');
-                    }
-                    else if (ToColon)
-                    {
-                        s = s.Substring(0, startIdx) + actor + " " + s.Substring(endIdx + 1).TrimStart(' ');
+                        var rest = s.Substring(endIdx + 1).TrimStart(' ');
+                        // no separator when nothing follows, or only a closing tag like </i>
+                        var separator = rest.Length == 0 || rest.StartsWith("</", StringComparison.Ordinal) ? string.Empty : " ";
+                        s = s.Substring(0, startIdx) + actor + separator + rest;
                     }
 
                     if (lineIdx == 0)
@@ -365,6 +498,9 @@ namespace Nikse.SubtitleEdit.Core.Common
 
             return actor;
         }
+
+        // A bracket pair spanning more text than this is a parenthetical remark, not a speaker tag.
+        private const int maxTagLength = 50;
 
         private static readonly string[] CommonTitles = { "Mr.", "Mrs.", "Dr." };
 
