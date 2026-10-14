@@ -479,12 +479,11 @@ public class ActorConverterTest
     [Fact]
     public void MultiLineBracket_ToSquare()
     {
-        // A bracket pair broken over a line break is folded to one line by JoinTagBrokenOverLineBreak
-        // before the actor scan, so square-to-square lands the whole label on the first line.
+        // Bracket to bracket only swaps the brackets, so a pair broken over a line break keeps the break.
         var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
         var p = new Paragraph { Text = "[Joe" + Environment.NewLine + "Smith] Hello." };
         var result = c.FixActors(p, '[', ']', null, null);
-        Assert.Equal("[Joe Smith] Hello.", result.Paragraph.Text);
+        Assert.Equal("[Joe" + Environment.NewLine + "Smith] Hello.", result.Paragraph.Text);
     }
 
     [Fact]
@@ -557,5 +556,74 @@ public class ActorConverterTest
         var p = new Paragraph { Text = "<i>(hums \"Let It Snow\")</i>" };
         var result = c.FixActors(p, '(', ')', null, null);
         Assert.Equal("<i>[hums \"Let It Snow\"]</i>", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void ParenthesesToSquare_KeepsEdgeHyphens()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        Assert.Equal("[stammering--]", c.FixActors(new Paragraph { Text = "(stammering--)" }, '(', ')', null, null).Paragraph.Text);
+        Assert.Equal("[-laughs]", c.FixActors(new Paragraph { Text = "(-laughs)" }, '(', ')', null, null).Paragraph.Text);
+    }
+
+    [Fact]
+    public void ParenthesesToSquare_KeepsUnpairedQuote()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "(\"Hello)" };
+        var result = c.FixActors(p, '(', ')', null, null);
+        Assert.Equal("[\"Hello]", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void ParenthesesToSquare_TwoLines_KeepsLineBreak()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "(text" + Environment.NewLine + "text)" };
+        var result = c.FixActors(p, '(', ')', null, null);
+        Assert.Equal("[text" + Environment.NewLine + "text]", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void ParenthesesToSquare_TwoLines_KeepsHyphens()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        var p = new Paragraph { Text = "(-laughing" + Environment.NewLine + "and crying-)" };
+        var result = c.FixActors(p, '(', ')', null, null);
+        Assert.Equal("[-laughing" + Environment.NewLine + "and crying-]", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void SquareToParentheses_TagBrokenMidLine_KeepsLineBreak()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToParentheses = true };
+        var p = new Paragraph { Text = "Princess Peach on [Speaker" + Environment.NewLine + "2] Super Smash Bros." };
+        var result = c.FixActors(p, '[', ']', null, null);
+        Assert.Equal("Princess Peach on (Speaker" + Environment.NewLine + "2) Super Smash Bros.", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void MultiLineBracket_ToActor_KeepsNonBreakingSpace()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToActor = true };
+        var p = new Paragraph { Text = "[Joe\u00A0Smith" + Environment.NewLine + "Jr.] Hello." };
+        var result = c.FixActors(p, '[', ']', null, null);
+        Assert.Equal("Joe\u00A0Smith Jr.", result.Paragraph.Actor);
+        Assert.Equal("Hello.", result.Paragraph.Text);
+    }
+
+    [Theory]
+    [InlineData("\r\n")]
+    [InlineData("\n")]
+    public void MultiLineBracket_ToActor_SameCapForCrLfAndLf(string newLine)
+    {
+        // 50 characters of name: the line break must not count towards the cap
+        var line1 = new string('a', 25);
+        var line2 = new string('b', 25);
+        var c = new ActorConverter(new SubRip(), "en") { ToActor = true };
+        var p = new Paragraph { Text = "[" + line1 + newLine + line2 + "] Hello." };
+        var result = c.FixActors(p, '[', ']', null, null);
+        Assert.Equal(line1 + " " + line2, result.Paragraph.Actor);
+        Assert.Equal("Hello.", result.Paragraph.Text);
     }
 }
