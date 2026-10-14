@@ -262,8 +262,10 @@ namespace Nikse.SubtitleEdit.Core.Common
         /// A line splitter can break a tag in half - "Princess Peach on (Speaker\n2) Super Smash
         /// Bros." - and the per-line scan in <see cref="FixActors"/> then finds no complete pair on
         /// either line, so the paragraph was silently left alone. Line breaks inside a bracket pair
-        /// are folded to a space, pulling the two half-lines together. Capped at name length: a
-        /// bracket pair spanning that much text is a parenthetical remark, not a speaker tag.
+        /// are folded to a space, pulling the two half-lines together. Only used when the tag becomes
+        /// a name (actor or colon) - square/parentheses conversion keeps the line break. Capped at
+        /// name length: a bracket pair spanning that much text is a parenthetical remark, not a
+        /// speaker tag.
         /// </summary>
         private static string JoinTagBrokenOverLineBreak(string text, char start, char end)
         {
@@ -277,11 +279,13 @@ namespace Nikse.SubtitleEdit.Core.Common
                 }
 
                 var inner = text.Substring(startIdx + 1, endIdx - startIdx - 1);
-                if (inner.Length <= maxTagLength &&
+                // line breaks don't count, so CRLF and LF text get the same cap as the two-line branch in FixActors
+                if (inner.Count(c => c != '\r' && c != '\n') <= maxTagLength &&
                     inner.IndexOf(start) < 0 &&
                     (inner.Contains('\n') || inner.Contains('\r')))
                 {
-                    var joined = string.Join(" ", inner.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+                    // only the line break and the spaces around it - other whitespace (a non-breaking space) is part of the name
+                    var joined = Regex.Replace(inner, @" *(?:\r\n|\r|\n)+ *", " ");
                     text = text.Substring(0, startIdx + 1) + joined + text.Substring(endIdx);
                     endIdx = startIdx + 1 + joined.Length;
                 }
@@ -296,7 +300,11 @@ namespace Nikse.SubtitleEdit.Core.Common
         {
             var p = new Paragraph(paragraph, false);
             Paragraph nextParagraph = null;
-            p.Text = JoinTagBrokenOverLineBreak(p.Text, start, end);
+            if (!ToSquare && !ToParentheses)
+            {
+                p.Text = JoinTagBrokenOverLineBreak(p.Text, start, end);
+            }
+
             var lines = p.Text.SplitToLines();
             if (lines.Count > 2)
             {
@@ -316,7 +324,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                 {
                     var contentLine1 = lines[0].Substring(line1StartIdx + 1);
                     var contentLine2 = lines[1].Substring(0, line2EndIdx);
-                    var actor = (contentLine1.Trim() + " " + contentLine2.Trim()).Trim(' ', '-', '"');
+                    var actor = TrimActor(contentLine1.Trim() + " " + contentLine2.Trim());
                     var selected = IsActor(actor);
 
                     if (changeCasing.HasValue)
@@ -363,9 +371,16 @@ namespace Nikse.SubtitleEdit.Core.Common
                 // it from the text.
                 if (startIdx != -1 && endIdx > startIdx)
                 {
-                    var actor = TrimActor(s.Substring(startIdx + 1, endIdx - startIdx - 1));
+                    var content = s.Substring(startIdx + 1, endIdx - startIdx - 1);
+                    var actor = TrimActor(content);
                     // AND, not assignment: selectFix is declared outside the per-line loop, so a later line's valid speaker used to mask an earlier line whose "actor" was really a clock ("It's 12:30 now.") - pre-checking a fix that destroys text.
                     selectFix &= IsActor(actor);
+                    if (ToSquare || ToParentheses)
+                    {
+                        // bracket to bracket only swaps the brackets - a trailing "--" or a lone quote is part of the text
+                        actor = content.Trim(' ');
+                    }
+
                     if (changeCasing.HasValue)
                     {
                         actor = SetCasing(_subtitleFormat, changeCasing, actor);
