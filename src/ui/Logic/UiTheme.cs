@@ -192,6 +192,12 @@ public static partial class UiTheme
             ApplyLighterDark();
         }
 
+        // Mirror the mac-chrome refresh SetCurrentTheme() does on an explicit theme switch:
+        // without this, an OS-level dark/light flip (Settings theme = "System") left the mac
+        // button/menu chrome stuck on whichever variant was active when the app started.
+        ApplyMacButtonStyle();
+        ApplyMacMenuChromeStyle(Se.Settings.Appearance.LayoutScale);
+
         ApplyTextSelectionStyle();
         ApplyProgressBarContrastStyle();
         SystemThemeChangedCallback?.Invoke();
