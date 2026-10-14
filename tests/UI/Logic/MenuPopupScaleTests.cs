@@ -19,6 +19,10 @@ public class MenuPopupScaleTests : IDisposable
 {
     private readonly List<Window> _windows = new();
 
+    // Popup menu items use denser, native-like metrics on macOS (UiTheme.GetPopupMenuMetrics).
+    private static readonly double PopupFontSize = OperatingSystem.IsMacOS() ? 13.0 : 14.0;
+    private static readonly double PopupMinHeight = OperatingSystem.IsMacOS() ? 26.0 : 32.0;
+
     public void Dispose()
     {
         foreach (var window in _windows)
@@ -72,10 +76,10 @@ public class MenuPopupScaleTests : IDisposable
         Assert.Equal(32.0, topItem.MinHeight, precision: 3);
 
         // Popup items: outside the transform, so both factors are baked in.
-        Assert.Equal(14.0 * layoutScale * fontScale, subItem.FontSize, precision: 3);
-        Assert.Equal(32.0 * layoutScale, subItem.MinHeight, precision: 3);
-        Assert.Equal(14.0 * layoutScale * fontScale, flyoutItem.FontSize, precision: 3);
-        Assert.Equal(32.0 * layoutScale, flyoutItem.MinHeight, precision: 3);
+        Assert.Equal(PopupFontSize * layoutScale * fontScale, subItem.FontSize, precision: 3);
+        Assert.Equal(PopupMinHeight * layoutScale, subItem.MinHeight, precision: 3);
+        Assert.Equal(PopupFontSize * layoutScale * fontScale, flyoutItem.FontSize, precision: 3);
+        Assert.Equal(PopupMinHeight * layoutScale, flyoutItem.MinHeight, precision: 3);
 
         topItem.Close();
         flyout.Hide();
@@ -147,15 +151,15 @@ public class MenuPopupScaleTests : IDisposable
 
         flyout.ShowAt(host);
         Dispatcher.UIThread.RunJobs();
-        Assert.Equal(14.0, flyoutItem.FontSize, precision: 3);
+        Assert.Equal(PopupFontSize, flyoutItem.FontSize, precision: 3);
         flyout.Hide();
 
         UiTheme.SetLayoutScale(1.3);
         flyout.ShowAt(host);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Equal(14.0 * 1.3, flyoutItem.FontSize, precision: 3);
-        Assert.Equal(32.0 * 1.3, flyoutItem.MinHeight, precision: 3);
+        Assert.Equal(PopupFontSize * 1.3, flyoutItem.FontSize, precision: 3);
+        Assert.Equal(PopupMinHeight * 1.3, flyoutItem.MinHeight, precision: 3);
         flyout.Hide();
     }
 }

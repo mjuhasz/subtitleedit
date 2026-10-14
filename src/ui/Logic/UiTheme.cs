@@ -21,8 +21,18 @@ using System.Runtime.CompilerServices;
 
 namespace Nikse.SubtitleEdit.Logic;
 
-public static class UiTheme
+public static partial class UiTheme
 {
+    private readonly record struct PopupMenuMetrics(
+        double FontSize,
+        double MinHeight,
+        Thickness ItemPadding,
+        Thickness ItemMargin,
+        Thickness PresenterPadding,
+        CornerRadius PresenterCornerRadius,
+        CornerRadius ItemCornerRadius,
+        Thickness SeparatorMargin);
+
     private static IStyle? _themeOverrideStyle;
     private static IStyle? _layoutScaleMenuStyle;
     private static ResourceDictionary? _resourceOverrides;
@@ -153,6 +163,8 @@ public static class UiTheme
         }
 
         ApplyMenuScaleStyle(Se.Settings.Appearance.LayoutScale);
+        ApplyMacMenuChromeStyle(Se.Settings.Appearance.LayoutScale);
+        ApplyMacButtonStyle();
         ApplyTextSelectionStyle();
         ApplyProgressBarContrastStyle();
         ApplyLayoutScaleToAllWindows();
@@ -321,8 +333,43 @@ public static class UiTheme
     {
         Se.Settings.Appearance.LayoutScale = factor;
         ApplyMenuScaleStyle(factor);
+        ApplyMacMenuChromeStyle(factor);
         ApplyLayoutScaleToAllWindows();
         ApplyScaleToDenseMenus();
+    }
+
+    static partial void ApplyMacMenuChromeStyle(double factor);
+    static partial void ApplyMacButtonStyle();
+
+    /// <summary>
+    /// Popup menu metrics: macOS gets denser, native-like menus (13 pt, rounded presenter and
+    /// items, inset highlight); other platforms keep the Fluent defaults. UI scale and font
+    /// scale are baked in, as popups render outside the window's LayoutTransformControl.
+    /// </summary>
+    private static PopupMenuMetrics GetPopupMenuMetrics(double factor)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return new PopupMenuMetrics(
+                FontSize: 13.0 * factor * FontScale,
+                MinHeight: 26.0 * factor,
+                ItemPadding: new Thickness(14.0 * factor, 4.0 * factor, 20.0 * factor, 4.0 * factor),
+                ItemMargin: new Thickness(4.0 * factor, factor, 4.0 * factor, factor),
+                PresenterPadding: new Thickness(6.0 * factor),
+                PresenterCornerRadius: new CornerRadius(10.0 * factor),
+                ItemCornerRadius: new CornerRadius(6.0 * factor),
+                SeparatorMargin: new Thickness(10.0 * factor, 6.0 * factor));
+        }
+
+        return new PopupMenuMetrics(
+            FontSize: PopupFontSize(factor),
+            MinHeight: 32.0 * factor,
+            ItemPadding: new Thickness(0),
+            ItemMargin: new Thickness(0),
+            PresenterPadding: new Thickness(0),
+            PresenterCornerRadius: new CornerRadius(0),
+            ItemCornerRadius: new CornerRadius(0),
+            SeparatorMargin: new Thickness(0));
     }
 
     private static void ApplyMenuScaleStyle(double factor)
@@ -344,9 +391,10 @@ public static class UiTheme
         var styles = new Styles();
 
         // Scale MenuItems in popups/context menus (outside LayoutTransformControl)
+        var popupMetrics = GetPopupMenuMetrics(factor);
         var menuItemStyle = new Style(x => x.OfType<MenuItem>());
-        menuItemStyle.Setters.Add(new Setter(TemplatedControl.FontSizeProperty, PopupFontSize(factor)));
-        menuItemStyle.Setters.Add(new Setter(Layoutable.MinHeightProperty, 32.0 * factor));
+        menuItemStyle.Setters.Add(new Setter(TemplatedControl.FontSizeProperty, popupMetrics.FontSize));
+        menuItemStyle.Setters.Add(new Setter(Layoutable.MinHeightProperty, popupMetrics.MinHeight));
         styles.Add(menuItemStyle);
 
         // Reset top-level menu bar items (inside the LayoutTransformControl, already scaled

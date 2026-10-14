@@ -1112,6 +1112,7 @@ public static partial class InitListViewAndEditBox
             }
         };
         columnMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridDataMenuVisible)));
+        UiTheme.AttachMacPopupChevronOverride(columnMenuItem);
         flyout.Items.Add(columnMenuItem);
 
         var sep1 = new Separator { DataContext = vm };
@@ -1222,6 +1223,7 @@ public static partial class InitListViewAndEditBox
             }
         };
         RemoveFormattingMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridDataMenuVisible)));
+        UiTheme.AttachMacPopupChevronOverride(RemoveFormattingMenuItem);
         flyout.Items.Add(RemoveFormattingMenuItem);
 
 
@@ -1527,6 +1529,7 @@ public static partial class InitListViewAndEditBox
             }
         };
         menuItemSelectedLines.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridDataMenuVisible)));
+        UiTheme.AttachMacPopupChevronOverride(menuItemSelectedLines);
         flyout.Items.Add(menuItemSelectedLines);
 
         // One command for both: while reading, it stops.
@@ -2002,6 +2005,7 @@ public static partial class InitListViewAndEditBox
                 symbolItem.CommandParameter = symbol;
                 unicodeMenuItem.Items.Add(symbolItem);
             }
+            UiTheme.AttachMacPopupChevronOverride(unicodeMenuItem);
             flyoutTextBox.Items.Add(unicodeMenuItem);
         }
 
