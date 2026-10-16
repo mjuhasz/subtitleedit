@@ -513,7 +513,9 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
 
         _shotChanges = audioVisualizer.ShotChanges ?? new List<double>();
 
-        _frameRate = 25.0;
+        // Without a readable video, use the project frame rate (the toolbar's) - the rate the
+        // rest of the app snaps to - not a fixed 25 fps, which put 23.976 content on the wrong grid.
+        _frameRate = Se.Settings.General.CurrentFrameRate > 0 ? Se.Settings.General.CurrentFrameRate : 25.0;
         _videoDurationSeconds = 0;
         _videoFileName = string.Empty;
         if (!string.IsNullOrEmpty(videoFileName) && System.IO.File.Exists(videoFileName))
@@ -531,7 +533,7 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
             }
             catch
             {
-                // fall back to 25 fps
+                // keep the project frame rate
             }
         }
 
