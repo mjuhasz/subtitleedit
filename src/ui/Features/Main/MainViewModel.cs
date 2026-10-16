@@ -6051,51 +6051,7 @@ public partial class MainViewModel :
 
         for (var i = 0; i < Subtitles.Count && i < subtitle.Paragraphs.Count; i++)
         {
-            var importText = subtitle.Paragraphs[i].Text;
-            var s = Subtitles[i].Text;
-
-            var pre = string.Empty;
-            if (importText.StartsWith("{\\") && importText.Contains('}'))
-            {
-                pre = importText.Substring(0, importText.IndexOf('}') + 1);
-                importText = importText.Remove(0, pre.Length);
-            }
-
-            for (var j = 0; j < 3; j++)
-            {
-                if (importText.StartsWith("<i>", StringComparison.OrdinalIgnoreCase) && importText.EndsWith("</i>", StringComparison.OrdinalIgnoreCase))
-                {
-                    importText = importText.Substring(0, importText.Length - 4);
-                    s = "<i>" + s + "</i>";
-                }
-
-                if (importText.StartsWith("<b>", StringComparison.OrdinalIgnoreCase) && importText.EndsWith("</b>", StringComparison.OrdinalIgnoreCase))
-                {
-                    importText = importText.Substring(0, importText.Length - 4);
-                    s = "<b>" + s + "</b>";
-                }
-
-                if (importText.StartsWith("<u>", StringComparison.OrdinalIgnoreCase) && importText.EndsWith("</u>", StringComparison.OrdinalIgnoreCase))
-                {
-                    importText = importText.Substring(0, importText.Length - 4);
-                    s = "<u>" + s + "</u>";
-                }
-
-                var startFont = importText.IndexOf("<font", StringComparison.OrdinalIgnoreCase);
-                if (startFont >= 0)
-                {
-                    var startFontEnd = importText.IndexOf('>', startFont);
-                    var endFont = importText.IndexOf("</font>", StringComparison.OrdinalIgnoreCase);
-                    if (startFontEnd > startFont && startFont < endFont)
-                    {
-                        var fontTag = importText.Substring(startFont, startFontEnd - startFont + 1);
-                        s = fontTag + s + "</font>";
-                    }
-                }
-            }
-
-            s = pre + s;
-
+            var s = FormattingImporter.Apply(subtitle.Paragraphs[i].Text, Subtitles[i].Text);
             if (!string.IsNullOrWhiteSpace(s))
             {
                 Subtitles[i].Text = s;
