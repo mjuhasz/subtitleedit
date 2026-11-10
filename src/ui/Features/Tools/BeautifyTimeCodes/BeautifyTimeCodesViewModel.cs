@@ -331,20 +331,22 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
         var idx = _beautifiedSubtitles.IndexOf(beautified);
         var prevB = idx > 0 ? _beautifiedSubtitles[idx - 1] : null;
         var nextB = (idx >= 0 && idx < _beautifiedSubtitles.Count - 1) ? _beautifiedSubtitles[idx + 1] : null;
+        var prevO = idx > 0 && idx - 1 < _originalSubtitles.Count ? _originalSubtitles[idx - 1] : null;
+        var nextO = idx >= 0 && idx + 1 < _originalSubtitles.Count ? _originalSubtitles[idx + 1] : null;
 
         var parts = new System.Collections.Generic.List<string>();
 
         var startChanged = Math.Abs(beautified.StartTime.TotalMilliseconds - original.StartTime.TotalMilliseconds) > 0.5;
         if (startChanged)
         {
-            var reason = DetectStartReason(original, beautified, prevB) ?? lang.NoReasonNote;
+            var reason = DetectStartReason(original, beautified, prevO, prevB) ?? lang.NoReasonNote;
             parts.Add(Se.Language.General.StartTime + ": " + reason);
         }
 
         var endChanged = Math.Abs(beautified.EndTime.TotalMilliseconds - original.EndTime.TotalMilliseconds) > 0.5;
         if (endChanged)
         {
-            var reason = DetectEndReason(original, beautified, nextB) ?? lang.NoReasonNote;
+            var reason = DetectEndReason(original, beautified, nextO, nextB) ?? lang.NoReasonNote;
             parts.Add(Se.Language.General.EndTime + ": " + reason);
         }
 
@@ -358,7 +360,11 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
         return string.Join("    ·    ", parts);
     }
 
-    private string? DetectStartReason(SubtitleLineViewModel original, SubtitleLineViewModel beautified, SubtitleLineViewModel? prev)
+    internal string? DetectStartReason(
+        SubtitleLineViewModel original,
+        SubtitleLineViewModel beautified,
+        SubtitleLineViewModel? originalPrev,
+        SubtitleLineViewModel? beautifiedPrev)
     {
         if (_frameRate <= 0)
         {
@@ -371,22 +377,19 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
             return snap;
         }
 
-        // Min-gap-to-previous: new start equals previous end + min-gap
-        if (prev != null)
+        if (IsMinGapEnforced(originalPrev, original, beautifiedPrev, beautified))
         {
-            var minGapMs = Configuration.Settings.General.MinimumMillisecondsBetweenLines;
-            var expected = prev.EndTime.TotalMilliseconds + minGapMs;
-            var halfFrame = (1.0 / _frameRate) * 500.0;
-            if (Math.Abs(beautified.StartTime.TotalMilliseconds - expected) <= halfFrame)
-            {
-                return Se.Language.Tools.BeautifyTimeCodes.MinGapEnforced;
-            }
+            return Se.Language.Tools.BeautifyTimeCodes.MinGapEnforced;
         }
 
         return DetectFrameSnap(original.StartTime, beautified.StartTime);
     }
 
-    private string? DetectEndReason(SubtitleLineViewModel original, SubtitleLineViewModel beautified, SubtitleLineViewModel? next)
+    internal string? DetectEndReason(
+        SubtitleLineViewModel original,
+        SubtitleLineViewModel beautified,
+        SubtitleLineViewModel? originalNext,
+        SubtitleLineViewModel? beautifiedNext)
     {
         if (_frameRate <= 0)
         {
@@ -399,19 +402,39 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
             return snap;
         }
 
-        if (next != null)
+        if (IsMinGapEnforced(original, originalNext, beautified, beautifiedNext))
         {
-            var minGapMs = Configuration.Settings.General.MinimumMillisecondsBetweenLines;
-            var expected = next.StartTime.TotalMilliseconds - minGapMs;
-            var halfFrame = (1.0 / _frameRate) * 500.0;
-            if (Math.Abs(beautified.EndTime.TotalMilliseconds - expected) <= halfFrame)
-            {
-                return Se.Language.Tools.BeautifyTimeCodes.MinGapEnforced;
-            }
+            return Se.Language.Tools.BeautifyTimeCodes.MinGapEnforced;
         }
 
         return DetectFrameSnap(original.EndTime, beautified.EndTime);
     }
+
+    /// <summary>
+    /// True when the gap between two cues was below the profile's gap and the beautifier widened it
+    /// to exactly that gap. Counted in frames, like the beautifier: an 83 ms gap at 23.976 is
+    /// already the 2-frame gap (83.4 ms in whole ms), so re-snapping such a pair is not a gap fix.
+    /// </summary>
+    private bool IsMinGapEnforced(
+        SubtitleLineViewModel? originalLeft,
+        SubtitleLineViewModel? originalRight,
+        SubtitleLineViewModel? beautifiedLeft,
+        SubtitleLineViewModel? beautifiedRight)
+    {
+        if (originalLeft == null || originalRight == null || beautifiedLeft == null || beautifiedRight == null)
+        {
+            return false;
+        }
+
+        var gapFrames = Configuration.Settings.BeautifyTimeCodes.Profile.Gap;
+        var originalGapFrames = GapInFrames(originalLeft, originalRight);
+        var newGapFrames = GapInFrames(beautifiedLeft, beautifiedRight);
+        return originalGapFrames < gapFrames && newGapFrames == gapFrames;
+    }
+
+    private int GapInFrames(SubtitleLineViewModel left, SubtitleLineViewModel right) =>
+        SubtitleFormat.MillisecondsToFrames(right.StartTime.TotalMilliseconds, _frameRate) -
+        SubtitleFormat.MillisecondsToFrames(left.EndTime.TotalMilliseconds, _frameRate);
 
     private string? DetectShotChangeSnap(TimeSpan beautifiedT, bool isOutCue)
     {
@@ -434,10 +457,9 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
 
     private string? DetectFrameSnap(TimeSpan originalT, TimeSpan beautifiedT)
     {
-        var origFrames = originalT.TotalSeconds * _frameRate;
-        var newFrames = beautifiedT.TotalSeconds * _frameRate;
-        var origAligned = Math.Abs(origFrames - Math.Round(origFrames)) < 0.05;
-        var newAligned = Math.Abs(newFrames - Math.Round(newFrames)) < 0.05;
+        // The exact frame grid the beautifier snaps to - the nominal 23.976 drifts from it.
+        var origAligned = FrameGridSnap.IsOnFrame(originalT.TotalMilliseconds, _frameRate);
+        var newAligned = FrameGridSnap.IsOnFrame(beautifiedT.TotalMilliseconds, _frameRate);
         if (newAligned && !origAligned)
         {
             return Se.Language.Tools.BeautifyTimeCodes.SnappedToFrame;
@@ -456,7 +478,7 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
 
         var minMs = Configuration.Settings.General.SubtitleMinimumDisplayMilliseconds;
         var maxMs = Configuration.Settings.General.SubtitleMaximumDisplayMilliseconds;
-        var tol = _frameRate > 0 ? 1000.0 / _frameRate * 0.5 : 5.0; // half-frame tolerance
+        var tol = _frameRate > 0 ? 1000.0 / SubtitleFormat.GetTimeCodeFrameRate(_frameRate) * 0.5 : 5.0; // half-frame tolerance
 
         if (oldDuration < minMs && Math.Abs(newDuration - minMs) <= tol)
         {

@@ -10167,21 +10167,14 @@ public partial class MainViewModel :
             return;
         }
 
-        var frameDurMs = 1000.0 / frameRate;
         var changed = 0;
         RunWithoutChangeDetection(() =>
         {
             foreach (var s in Subtitles)
             {
-                var newStartMs = Math.Round(s.StartTime.TotalMilliseconds / frameDurMs, MidpointRounding.AwayFromZero) * frameDurMs;
-                var newEndMs = Math.Round(s.EndTime.TotalMilliseconds / frameDurMs, MidpointRounding.AwayFromZero) * frameDurMs;
-
-                // Snapping can collapse start and end to the same frame (or invert them) for
-                // sub-frame durations; keep the cue at least one frame long.
-                if (newEndMs <= newStartMs)
-                {
-                    newEndMs = newStartMs + frameDurMs;
-                }
+                // The same frame grid as Beautify time codes; times already on a frame stay put.
+                var (newStartMs, newEndMs) = FrameGridSnap.SnapCue(
+                    s.StartTime.TotalMilliseconds, s.EndTime.TotalMilliseconds, frameRate);
 
                 if (Math.Abs(newStartMs - s.StartTime.TotalMilliseconds) >= 0.5)
                 {

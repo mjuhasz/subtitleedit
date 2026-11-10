@@ -3174,18 +3174,11 @@ public class BatchConverter : IBatchConverter, IFixCallbacks
             return subtitle;
         }
 
-        var frameDurationMs = TimeCode.BaseUnit / frameRate;
         foreach (var p in subtitle.Paragraphs)
         {
-            var newStartMs = Math.Round(p.StartTime.TotalMilliseconds / frameDurationMs, MidpointRounding.AwayFromZero) * frameDurationMs;
-            var newEndMs = Math.Round(p.EndTime.TotalMilliseconds / frameDurationMs, MidpointRounding.AwayFromZero) * frameDurationMs;
-
-            // Snapping can collapse start and end to the same frame (or invert them) for
-            // sub-frame durations; keep the cue at least one frame long.
-            if (newEndMs <= newStartMs)
-            {
-                newEndMs = newStartMs + frameDurationMs;
-            }
+            // The same frame grid as Beautify time codes; times already on a frame stay put.
+            var (newStartMs, newEndMs) = FrameGridSnap.SnapCue(
+                p.StartTime.TotalMilliseconds, p.EndTime.TotalMilliseconds, frameRate);
 
             p.StartTime.TotalMilliseconds = newStartMs;
             p.EndTime.TotalMilliseconds = newEndMs;
