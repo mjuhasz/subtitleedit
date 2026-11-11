@@ -24,7 +24,7 @@ public class BeautifyTimeCodesReasonTests
 
     private static double Frame(int frame) => SubtitleFormat.FramesToMilliseconds(frame, Fps);
 
-    private static void WithNetflixProfile(Action<BeautifyTimeCodesViewModel> test)
+    private static void WithNetflixProfile(Action<BeautifyTimeCodesViewModel> test, List<double>? shotChanges = null)
     {
         using var _ = new SettingsScope("General.CurrentFrameRate");
         Se.Settings.General.CurrentFrameRate = Fps;
@@ -34,7 +34,13 @@ public class BeautifyTimeCodesReasonTests
         try
         {
             var vm = new BeautifyTimeCodesViewModel(new StubWindowService());
-            vm.Initialize(new List<SubtitleLineViewModel> { Line(1, 1000, 2000) }, new AudioVisualizer(), string.Empty);
+            var visualizer = new AudioVisualizer();
+            if (shotChanges != null)
+            {
+                visualizer.ShotChanges = shotChanges;
+            }
+
+            vm.Initialize(new List<SubtitleLineViewModel> { Line(1, 1000, 2000) }, visualizer, string.Empty);
             test(vm);
         }
         finally
@@ -72,6 +78,40 @@ public class BeautifyTimeCodesReasonTests
             Assert.Equal(
                 Se.Language.Tools.BeautifyTimeCodes.MinGapEnforced,
                 vm.DetectEndReason(originalLeft, beautifiedLeft, originalRight, beautifiedRight));
+        });
+    }
+
+    /// <summary>
+    /// A connected pair in a shot change's green zone is moved ~4 frames onto the zone edge (12 frames before
+    /// the shot change). That is a shot change snap, not a frame snap - a frame snap never moves a time by 178 ms.
+    /// </summary>
+    [Fact]
+    public void ConnectedPairMovedToGreenZoneEdge_IsReportedAsSnappedToShotChange()
+    {
+        WithNetflixProfile(vm =>
+        {
+            var original338 = Line(338, 1402234, 1406500);
+            var original339 = Line(339, 1406583, 1408198);
+            var beautified338 = Line(338, 1402234, 1406322);
+            var beautified339 = Line(339, Frame(33720), 1408198);
+            var snapped = Se.Language.Tools.BeautifyTimeCodes.SnappedToShotChange;
+
+            Assert.Equal(snapped, vm.DetectStartReason(original339, beautified339, original338, beautified338));
+            Assert.Equal(snapped, vm.DetectEndReason(original338, beautified338, original339, beautified339));
+        }, new List<double> { Frame(33732) / 1000.0 });
+    }
+
+    [Fact]
+    public void LargeMoveWithoutShotChange_IsNotReportedAsSnappedToFrame()
+    {
+        WithNetflixProfile(vm =>
+        {
+            var original = Line(1, Frame(1000) + 5, Frame(1100));
+            var beautified = Line(1, Frame(995), Frame(1100));
+
+            Assert.NotEqual(
+                Se.Language.Tools.BeautifyTimeCodes.SnappedToFrame,
+                vm.DetectStartReason(original, beautified, null, null));
         });
     }
 }

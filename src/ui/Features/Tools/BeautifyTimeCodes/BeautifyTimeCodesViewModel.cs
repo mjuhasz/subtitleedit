@@ -452,11 +452,34 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
                 return Se.Language.Tools.BeautifyTimeCodes.SnappedToShotChange;
             }
         }
+
+        // The beautifier also puts a cue on the edge of a shot change's green zone (e.g. 12 frames before it);
+        // a connected pair then lands a gap away from that edge.
+        var profile = Configuration.Settings.BeautifyTimeCodes.Profile;
+        var leftZone = isOutCue ? profile.OutCuesLeftGreenZone : profile.InCuesLeftGreenZone;
+        var rightZone = isOutCue ? profile.OutCuesRightGreenZone : profile.InCuesRightGreenZone;
+        var tolerance = Math.Max(1, profile.Gap);
+        var cueFrame = SubtitleFormat.MillisecondsToFrames(beautifiedT.TotalMilliseconds, _frameRate);
+        foreach (var sc in _shotChanges)
+        {
+            var scFrame = SubtitleFormat.MillisecondsToFrames(sc * 1000.0, _frameRate);
+            if (Math.Abs(cueFrame - (scFrame - leftZone)) <= tolerance ||
+                Math.Abs(cueFrame - (scFrame + rightZone)) <= tolerance)
+            {
+                return Se.Language.Tools.BeautifyTimeCodes.SnappedToShotChange;
+            }
+        }
         return null;
     }
 
     private string? DetectFrameSnap(TimeSpan originalT, TimeSpan beautifiedT)
     {
+        // Snapping to the grid moves a time by less than a frame; a bigger move has another cause.
+        if (Math.Abs(beautifiedT.TotalMilliseconds - originalT.TotalMilliseconds) > 1000.0 / _frameRate + 0.5)
+        {
+            return null;
+        }
+
         // The exact frame grid the beautifier snaps to - the nominal 23.976 drifts from it.
         var origAligned = FrameGridSnap.IsOnFrame(originalT.TotalMilliseconds, _frameRate);
         var newAligned = FrameGridSnap.IsOnFrame(beautifiedT.TotalMilliseconds, _frameRate);
