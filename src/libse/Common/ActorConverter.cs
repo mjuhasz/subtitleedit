@@ -88,8 +88,16 @@ namespace Nikse.SubtitleEdit.Core.Common
             var p = new Paragraph(paragraph, false);
             var lines = p.Text.SplitToLines();
 
+            // When no line has a colon that reads as a speaker label ("Little past 9:00,", "There is
+            // one way out of this:"), the paragraph is converted the naive way - every colon is taken
+            // for one - and flagged NotActor, so the dialog lists it unticked for the user to eyeball
+            // and batch convert leaves it alone. Otherwise only speaker colons are converted, and a
+            // line like "It's 9:00." in the same paragraph is kept as it is.
+            var notActor = !lines.Any(line => FindSpeakerColon(StripPositionAndItalic(line.Trim()), ch) > 0);
+            Func<string, int> find = notActor ? (Func<string, int>)(s => s.IndexOf(ch)) : s => FindSpeakerColon(s, ch);
+
             // Only one extra paragraph can be split off, so a third speaker would be lost.
-            if (ToActor && lines.Count(line => HasActor(line, ch)) > 2)
+            if (ToActor && lines.Count(line => find(StripPositionAndItalic(line.Trim())) > 0) > 2)
             {
                 return new ActorConverterResult { Paragraph = paragraph, Skip = true };
             }
@@ -103,7 +111,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                 foreach (var line in lines)
                 {
                     var stripped = StripPositionAndItalic(line.Trim());
-                    if (stripped.StartsWith("-", StringComparison.Ordinal) && stripped.IndexOf(ch) <= 0)
+                    if (stripped.StartsWith("-", StringComparison.Ordinal) && find(stripped) <= 0)
                     {
                         hasDialogHyphen = true;
                         break;
@@ -113,7 +121,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                 if (!hasDialogHyphen)
                 {
                     var secondLine = StripPositionAndItalic(lines[1].Trim()).TrimStart(' ', '-');
-                    if (secondLine.IndexOf(ch) > 0)
+                    if (find(secondLine) > 0)
                     {
                         hasDialogHyphen = true;
                     }
@@ -145,7 +153,7 @@ namespace Nikse.SubtitleEdit.Core.Common
                     s = s.Substring(3, s.Length - 7);
                 }
 
-                var startIdx = s.IndexOf(ch);
+                var startIdx = find(s);
                 if (startIdx <= 0)
                 {
                     // A line without an actor belongs to the paragraph the previous line went to.
@@ -190,13 +198,15 @@ namespace Nikse.SubtitleEdit.Core.Common
                 var text = s.Substring(startIdx + 1).TrimStart(' ');
                 if (!ToActor)
                 {
-                    if (hasItalic)
+                    if (hasItalic && text.Length > 0)
                     {
                         text = "<i>" + text + "</i>";
                     }
 
                     var dialogHyphen = hasDialogHyphen ? "-" : string.Empty;
-                    textLines.Add(posTag + dialogHyphen + actor + " " + text);
+                    // no separator when the label stands alone on its line ("JOHN:" above the dialog)
+                    var separator = text.Length == 0 ? string.Empty : " ";
+                    textLines.Add(posTag + dialogHyphen + actor + separator + text);
                 }
                 else if (!actorAssigned)
                 {
@@ -225,7 +235,8 @@ namespace Nikse.SubtitleEdit.Core.Common
             {
                 Paragraph = p,
                 NextParagraph = nextParagraph,
-                Selected = selectFix,
+                Selected = selectFix && !notActor,
+                NotActor = notActor,
             };
         }
 
@@ -251,9 +262,85 @@ namespace Nikse.SubtitleEdit.Core.Common
             return s;
         }
 
-        private static bool HasActor(string line, char ch)
+        // A speaker label before a colon is a name or a short description - "JOHN", "Dr. Smith", "MAN 2".
+        private const int MaxColonActorWords = 4;
+        private const int MaxColonActorLength = 30;
+
+        // Lowercase words allowed inside a mixed-case speaker label ("Man in Black", "Ludwig van Beethoven").
+        private static readonly HashSet<string> NameConnectors = new HashSet<string>(StringComparer.Ordinal)
         {
-            return line.Trim().IndexOf(ch) > 0;
+            "of", "the", "on", "in", "at", "and", "de", "van", "von", "du", "la", "le",
+        };
+
+        private static readonly char[] SentencePunctuation = { ',', ';', '?', '!', '…', '.' };
+
+        /// <summary>
+        /// Index of the colon ending a speaker label at the start of <paramref name="s"/> (a line
+        /// with the position tag and the italic wrapper removed), or -1 when the first colon is
+        /// part of the text: a time ("9:00"), a URL, a colon ending a sentence fragment ("There is
+        /// one way out of this:"), or a label that reads as a sentence ("Here's the deal:").
+        /// </summary>
+        private static int FindSpeakerColon(string s, char ch)
+        {
+            var idx = s.IndexOf(ch);
+            if (idx <= 0)
+            {
+                return -1;
+            }
+
+            var next = idx + 1 < s.Length ? s[idx + 1] : '\0';
+            if (char.IsDigit(s[idx - 1]) && char.IsDigit(next))
+            {
+                return -1;
+            }
+
+            if (next == '/' || next == ch)
+            {
+                return -1;
+            }
+
+            var actor = HtmlUtil.RemoveHtmlTags(TrimActor(s.Substring(0, idx)), true).Trim();
+            if (actor.Length == 0 || actor.Length > MaxColonActorLength)
+            {
+                return -1;
+            }
+
+            var words = actor.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > MaxColonActorWords)
+            {
+                return -1;
+            }
+
+            var isUpperCase = actor.Any(char.IsLetter) && actor == actor.ToUpperInvariant();
+
+            // "JOHN:" may stand alone with the dialog on the next line, a mixed-case fragment may not
+            var rest = HtmlUtil.RemoveHtmlTags(s.Substring(idx + 1), true).Trim();
+            if (rest.Length == 0 && !isUpperCase)
+            {
+                return -1;
+            }
+
+            for (var i = 0; i < words.Length; i++)
+            {
+                var word = words[i];
+                if (CommonTitles.Contains(word))
+                {
+                    continue;
+                }
+
+                if (word.IndexOfAny(SentencePunctuation) >= 0)
+                {
+                    return -1;
+                }
+
+                var first = word.FirstOrDefault(char.IsLetterOrDigit);
+                if (char.IsLower(first) && (i == 0 || !NameConnectors.Contains(word)))
+                {
+                    return -1;
+                }
+            }
+
+            return idx;
         }
 
         /// <summary>

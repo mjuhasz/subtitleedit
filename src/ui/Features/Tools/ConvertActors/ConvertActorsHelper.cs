@@ -52,7 +52,7 @@ public static class ConvertActorsHelper
     /// <summary>
     /// Converts all paragraphs of <paramref name="subtitle"/> in place - what the dialog does with
     /// every suggested conversion ticked ("only names" leaves the non-name conversions out, as the
-    /// dialog leaves them unticked).
+    /// dialog leaves them unticked; colons that don't read as speaker labels are always left out).
     /// </summary>
     public static void ConvertSubtitle(Subtitle subtitle, SubtitleFormat format, ConvertActorType fromType, ConvertActorType toType, int? changeCasing, SKColor? color, bool onlyNames)
     {
@@ -64,7 +64,7 @@ public static class ConvertActorsHelper
             var p = subtitle.Paragraphs[i];
             var oldText = p.Text;
             var result = ConvertParagraph(converter, p, fromType, changeCasing, color);
-            if (result == null || result.Skip || (onlyNames && !result.Selected))
+            if (result == null || result.Skip || result.NotActor || (onlyNames && !result.Selected))
             {
                 continue;
             }

@@ -84,14 +84,46 @@ public class ConvertActorsTests
         Assert.False(item.IsChecked);
     }
 
+    /// <summary>A speaker missing from the names list is still checked when "Only names" is off.</summary>
     [AvaloniaFact]
-    public void OnlyNamesOff_KeepsEveryConversionChecked()
+    public void OnlyNamesOff_KeepsEverySpeakerConversionChecked()
     {
         var vm = Preview(ConvertActorType.InlineColon, ConvertActorType.Actor, new SubRip(), onlyNames: false,
-            (Text: "Meet me at 3:30.", Actor: string.Empty));
+            (Text: "VOGEL: Where did you last see him?", Actor: string.Empty));
 
         var item = Assert.Single(vm.Subtitles);
         Assert.True(item.IsChecked);
+    }
+
+    /// <summary>
+    /// A colon that is not a speaker label - a time, a colon ending a sentence fragment - is listed for
+    /// review but never checked, "Only names" or not: it used to become "[Little past 9] 00,".
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("Meet me at 3:30.")]
+    [InlineData("Little past 9:00,\nwe heard their trucks pullin' out.")]
+    [InlineData("There is one way out of this:\nkeep going.")]
+    public void OnlyNamesOff_LeavesAColonThatIsNotASpeakerUnchecked(string text)
+    {
+        var vm = Preview(ConvertActorType.InlineColon, ConvertActorType.InlineSquareBrackets, new SubRip(), onlyNames: false,
+            (Text: text.Replace("\\n", Environment.NewLine), Actor: string.Empty));
+
+        var item = Assert.Single(vm.Subtitles);
+        Assert.False(item.IsChecked);
+    }
+
+    /// <summary>Batch convert has no preview to review, so it leaves such a paragraph alone.</summary>
+    [Fact]
+    public void ConvertSubtitle_LeavesAColonThatIsNotASpeakerAlone()
+    {
+        var subtitle = new Subtitle();
+        subtitle.Paragraphs.Add(new Paragraph("Little past 9:00," + Environment.NewLine + "we heard their trucks pullin' out.", 0, 1000));
+        subtitle.Paragraphs.Add(new Paragraph("VOGEL: Where did you last see him?", 1000, 2000));
+
+        ConvertActorsHelper.ConvertSubtitle(subtitle, new SubRip(), ConvertActorType.InlineColon, ConvertActorType.InlineSquareBrackets, null, null, onlyNames: false);
+
+        Assert.Equal("Little past 9:00," + Environment.NewLine + "we heard their trucks pullin' out.", subtitle.Paragraphs[0].Text);
+        Assert.Equal("[VOGEL] Where did you last see him?", subtitle.Paragraphs[1].Text);
     }
 
     /// <summary>A colon that starts a line is not an actor, so there is nothing to convert.</summary>

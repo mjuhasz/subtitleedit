@@ -626,4 +626,82 @@ public class ActorConverterTest
         Assert.Equal(line1 + " " + line2, result.Paragraph.Actor);
         Assert.Equal("Hello.", result.Paragraph.Text);
     }
+
+    private static ActorConverterResult ColonToSquare(string text)
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToSquare = true };
+        return c.FixActorsFromBeforeColon(new Paragraph { Text = text }, ':', null, null);
+    }
+
+    /// <summary>
+    /// A colon that ends a time or a sentence fragment is not a speaker label: the dialog lists the
+    /// guess unticked and batch convert leaves it alone, it used to become "[Little past 9] 00,".
+    /// </summary>
+    [Theory]
+    [InlineData("Little past 9:00,\nwe heard their trucks pullin' out.")]
+    [InlineData("There is one way out of this:\nkeep going.")]
+    [InlineData("Meet me at 3:30.")]
+    [InlineData("Here's the deal: we run.")]
+    [InlineData("Go to http://example.com now.")]
+    [InlineData("-It's 9:00.\n-Yes.")]
+    [InlineData("Well, listen: we run.")]
+    [InlineData("and then: nothing.")]
+    public void ColonNotSpeakerLabel_IsNotActor(string text)
+    {
+        var result = ColonToSquare(text.Replace("\n", Environment.NewLine));
+        Assert.True(result.NotActor);
+        Assert.False(result.Selected);
+        Assert.False(result.Skip);
+    }
+
+    [Theory]
+    [InlineData("MAN 2: Hello.", "[MAN 2] Hello.")]
+    [InlineData("Man 2: Hello.", "[Man 2] Hello.")]
+    [InlineData("Dr. Smith: Sit down.", "[Dr. Smith] Sit down.")]
+    [InlineData("Man in Black: Stop.", "[Man in Black] Stop.")]
+    [InlineData("KITT: <i>impossible to tell.</i>", "[KITT] <i>impossible to tell.</i>")]
+    [InlineData("VOGEL: Where did you", "[VOGEL] Where did you")]
+    [InlineData("JOHN: It's 9:00.", "[JOHN] It's 9:00.")]
+    public void ColonSpeakerLabel_IsConverted(string text, string expected)
+    {
+        var result = ColonToSquare(text);
+        Assert.False(result.NotActor);
+        Assert.Equal(expected, result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void ColonSpeakerLabel_UpperCaseAloneOnLine()
+    {
+        var result = ColonToSquare("JOHN:" + Environment.NewLine + "Come here.");
+        Assert.False(result.NotActor);
+        Assert.Equal("[JOHN]" + Environment.NewLine + "Come here.", result.Paragraph.Text);
+    }
+
+    /// <summary>A time on a line of its own is kept as it is when another line names the speaker.</summary>
+    [Fact]
+    public void ColonSpeakerLabel_TimeLineKeptVerbatim()
+    {
+        var result = ColonToSquare("JOE: Hi." + Environment.NewLine + "Little past 9:00,");
+        Assert.False(result.NotActor);
+        Assert.Equal("[JOE] Hi." + Environment.NewLine + "Little past 9:00,", result.Paragraph.Text);
+    }
+
+    [Fact]
+    public void ColonSpeakerLabel_TimeLineKeptVerbatim_ToActor()
+    {
+        var c = new ActorConverter(new SubRip(), "en") { ToActor = true };
+        var p = new Paragraph { Text = "JOE: Hi." + Environment.NewLine + "It's 9:00." };
+        var result = c.FixActorsFromBeforeColon(p, ':', null, null);
+        Assert.Equal("JOE", result.Paragraph.Actor);
+        Assert.Equal("Hi." + Environment.NewLine + "It's 9:00.", result.Paragraph.Text);
+        Assert.Null(result.NextParagraph);
+    }
+
+    /// <summary>"-It's 9:00." is not a speaker line, so it does not make the paragraph a dialog.</summary>
+    [Fact]
+    public void ColonSpeakerLabel_TimeDoesNotTriggerDialogHyphen()
+    {
+        var result = ColonToSquare("JOHN: Come this way!" + Environment.NewLine + "It's 9:00.");
+        Assert.Equal("[JOHN] Come this way!" + Environment.NewLine + "It's 9:00.", result.Paragraph.Text);
+    }
 }

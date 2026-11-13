@@ -189,7 +189,8 @@ public partial class ConvertActorsViewModel : ObservableObject, IClosingCleanup
             return;
         }
 
-        var isChecked = result.Selected || !OnlyNames;
+        // a colon that doesn't read as a speaker label is listed for review, never pre-checked
+        var isChecked = !result.NotActor && (result.Selected || !OnlyNames);
         var updatedVm = new SubtitleLineViewModel(vm);
         updatedVm.Text = newText;
         updatedVm.Actor = newActor;
