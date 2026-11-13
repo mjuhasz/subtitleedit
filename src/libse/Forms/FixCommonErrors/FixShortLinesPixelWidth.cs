@@ -42,6 +42,12 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     continue;
                 }
 
+                // song lyrics: keep each lyric line on its own line
+                if (p.Text.Contains('♪') || p.Text.Contains('♫'))
+                {
+                    continue;
+                }
+
                 var unbreakResult = Utilities.UnbreakLine(p.Text);
                 var cleanUnbreakResult = HtmlUtil.RemoveHtmlTags(unbreakResult, true);
                 var totalPixelWidth = _calcPixelWidth(cleanUnbreakResult);

@@ -35,6 +35,12 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                         continue;
                     }
 
+                    // song lyrics: keep each lyric line on its own line
+                    if (s.Contains('♪') || s.Contains('♫'))
+                    {
+                        continue;
+                    }
+
                     s = Utilities.AutoBreakLine(p.Text, callbacks.Language);
                     if (s != p.Text)
                     {
