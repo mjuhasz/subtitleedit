@@ -1807,15 +1807,18 @@ public static partial class InitListViewAndEditBox
                 vm.AddOrEditBookmarkCommand.Execute(null);
             }
         };
-        var bookmarkLabel = new Label
+        var bookmarkLabel = new TextBlock
         {
             FontSize = UiUtil.ScaledFontSize(10),
             [UiUtil.DesignFontSizeProperty] = 10,
             VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
+            Margin = new Thickness(4, 0, 0, 0),
             DataContext = vm,
             Foreground = new SolidColorBrush(Se.Settings.Appearance.BookmarkColor.FromHexToColor()),
-            [!Label.ContentProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Bookmark)) { Converter = textOneLineShortConverter },
-            [!Label.IsVisibleProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Bookmark)) { Converter = notNullConverter },
+            [!TextBlock.TextProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Bookmark)) { Converter = textOneLineShortConverter, ConverterParameter = int.MaxValue.ToString() },
+            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Bookmark)) { Converter = notNullConverter },
         };
         bookmarkLabel.PointerPressed += (_, __) =>
         {
@@ -1824,32 +1827,36 @@ public static partial class InitListViewAndEditBox
                 vm.AddOrEditBookmarkCommand.Execute(null);
             }
         };
-        var panelBookmark = new StackPanel
+        var panelBookmark = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Left,
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Center,
-            [!Label.IsVisibleProperty] = new Binding(nameof(vm.SelectedSubtitle)) { Converter = notNullConverter },
+            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.SelectedSubtitle)) { Converter = notNullConverter },
             Children =
             {
                 bookmarkIcon,
                 bookmarkLabel,
             }
         };
+        Grid.SetColumn(bookmarkIcon, 0);
+        Grid.SetColumn(bookmarkLabel, 1);
 
-
-        var panelForTextLabel = new StackPanel
+        // Right margin reserves room for the right-aligned "Chars/second" label in the same cell.
+        var panelForTextLabel = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Left,
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 170, 0),
             Children =
             {
                 textLabel,
                 panelBookmark,
             }
         };
-
+        Grid.SetColumn(textLabel, 0);
+        Grid.SetColumn(panelBookmark, 1);
 
         textEditGrid.Children.Add(panelForTextLabel);
 
