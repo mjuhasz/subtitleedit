@@ -1092,6 +1092,19 @@ namespace Nikse.SubtitleEdit.Core.Forms
         private void AlignAndSetCue(Paragraph paragraph, bool isInCue, int newFrame)
         {
             double newTime = FramesToMilliseconds(newFrame);
+
+            // Subtitle times are whole ms, so a frame at e.g. 23.976 can sit on a half ms (frame 1716 is
+            // 71571.5) where either neighbour is on the frame. Keep a time that is already that close
+            // instead of rounding it by 1 ms to the other side ("Snap all times to frames" does the same).
+            if (_timeCodes.Count == 0)
+            {
+                var exactMs = newFrame * TimeCode.BaseUnit / SubtitleFormat.GetTimeCodeFrameRate(_frameRate);
+                var current = isInCue ? paragraph.StartTime.TotalMilliseconds : paragraph.EndTime.TotalMilliseconds;
+                if (Math.Abs(current - exactMs) <= 0.5)
+                {
+                    newTime = current;
+                }
+            }
                         
             // Finally, update time
             if (isInCue)
