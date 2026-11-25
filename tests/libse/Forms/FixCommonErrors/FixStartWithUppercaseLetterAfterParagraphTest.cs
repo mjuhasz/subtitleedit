@@ -205,4 +205,23 @@ public class FixStartWithUppercaseLetterAfterParagraphTest
         var input = "No irás a..." + Environment.NewLine + "- fuera!";
         Assert.Equal(expected, Fix("Vete.", input, "es"));
     }
+
+    // A leading ellipsis continues the previous sentence, so the second dialogue line stays lowercase.
+    [Theory]
+    [InlineData("…even found them.")]
+    [InlineData("...even found them.")]
+    [InlineData("…of <i>The New England Courant.</i>")]
+    public void KeepsLowercaseAfterLeadingEllipsisInSecondDialogueLine(string secondLine)
+    {
+        var text = "- Dad." + Environment.NewLine + "- " + secondLine;
+        Assert.Equal(text, Fix("Vorige regel.", text, "en"));
+    }
+
+    [Fact]
+    public void CapitalizesSecondDialogueLineWithoutEllipsis()
+    {
+        var input = "- Dad." + Environment.NewLine + "- even found them.";
+        var expected = "- Dad." + Environment.NewLine + "- Even found them.";
+        Assert.Equal(expected, Fix("Vorige regel.", input, "en"));
+    }
 }

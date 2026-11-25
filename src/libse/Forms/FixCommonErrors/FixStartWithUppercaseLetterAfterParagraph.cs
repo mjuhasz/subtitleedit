@@ -308,13 +308,15 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                     string text = p.Text.Substring(indexOfNewLine + len);
                     var st = new StrippableText(text);
                     var keepCase = IsLowercaseBeforeUppercase(st.StrippedText, 0);
+                    // A leading ellipsis (three dots or the single "…" character) continues the previous sentence.
+                    var hasLeadingEllipsis = st.Pre.Contains("...", StringComparison.Ordinal) || st.Pre.Contains('…');
 
-                    if (st.StrippedText.Length > 0 && !keepCase && Helper.IsTurkishLittleI(st.StrippedText[0], encoding, language) && !st.Pre.EndsWith('[') && !st.Pre.Contains("..."))
+                    if (st.StrippedText.Length > 0 && !keepCase && Helper.IsTurkishLittleI(st.StrippedText[0], encoding, language) && !st.Pre.EndsWith('[') && !hasLeadingEllipsis)
                     {
                         text = st.Pre + Helper.GetTurkishUppercaseLetter(st.StrippedText[0], encoding) + st.StrippedText.Substring(1) + st.Post;
                         p.Text = p.Text.Remove(indexOfNewLine + len).Insert(indexOfNewLine + len, text);
                     }
-                    else if (st.StrippedText.Length > 0 && !keepCase && st.StrippedText[0] != char.ToUpper(st.StrippedText[0]) && !st.Pre.EndsWith('[') && !st.Pre.Contains("..."))
+                    else if (st.StrippedText.Length > 0 && !keepCase && st.StrippedText[0] != char.ToUpper(st.StrippedText[0]) && !st.Pre.EndsWith('[') && !hasLeadingEllipsis)
                     {
                         // DutchCasing.CapitalizeFirstLetter applies the IJ digraph rule for "nl"; for
                         // other languages it is equivalent to char.ToUpper on the first letter.
