@@ -42,6 +42,22 @@ public class FixMissingSpacesTest
         Assert.Equal("He said \"go…\"", Fix("He said \"go…\""));
     }
 
+    [Theory]
+    [InlineData("called de Heere, also two \"E\"'s.")]
+    [InlineData("called de Heere, also two \"E\"’s.")]
+    [InlineData("The main gate was located at a street\r\ncalled de Heere, also two \"E\"'s.")]
+    public void Quote_FollowedByApostrophe_NoSpaceInserted(string text)
+    {
+        Assert.Equal(text, Fix(text));
+    }
+
+    [Fact]
+    public void Quote_MissingSpacesAround_StillFixed()
+    {
+        Assert.Equal("Get a \"get out of jail free\" card.", Fix("Get a\"get out of jail free\"card."));
+        Assert.Equal("He said \"hi\" and left", Fix("He said \"hi\"and left"));
+    }
+
     // Cluster 4: Space added after ] before letter
     [Fact]
     public void SdhBracket_MissingSpaceBeforeLetter()

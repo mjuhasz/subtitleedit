@@ -240,7 +240,7 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                         var isAfterAssTag = newText.Contains("{\\") && start > 0 && newText[start - 1] == '}';
                         var isAfterHyphen = start > 0 && newText[start - 1] == '-';
                         var isAfterEllipsis = start >= 3 && newText.Substring(start - 3, 3) == "...";
-                        if (!isAfterAssTag && !isAfterEllipsis && !isAfterHyphen && start > 0 && !(Environment.NewLine + @" >[(♪♫¿").Contains(p.Text[start - 1]))
+                        if (!isAfterAssTag && !isAfterEllipsis && !isAfterHyphen && start > 0 && !(Environment.NewLine + @" >[(♪♫¿'’").Contains(p.Text[start - 1]))
                         {
                             if (indexOfFontTag < 0 || start > newText.IndexOf('>', indexOfFontTag)) // font tags can contain "
                             {
@@ -248,7 +248,7 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                                 end++;
                             }
                         }
-                        if (end < newText.Length - 2 && !(Environment.NewLine + @" <,.!?:;])♪♫¿…").Contains(newText[end + 1]))
+                        if (end < newText.Length - 2 && !(Environment.NewLine + @" <,.!?:;])♪♫¿…'’").Contains(newText[end + 1]))
                         {
                             if (indexOfFontTag < 0 || end > newText.IndexOf('>', indexOfFontTag)) // font tags can contain "
                             {
