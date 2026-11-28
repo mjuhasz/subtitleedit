@@ -52,6 +52,13 @@ public class FixMissingSpacesTest
     }
 
     [Fact]
+    public void Quote_FollowedByHyphenSuffix_NoSpaceInserted()
+    {
+        var text = "A \"Tudom, mit tettél\"-nek" + System.Environment.NewLine + "volt értelme?";
+        Assert.Equal(text, Fix(text, "hu"));
+    }
+
+    [Fact]
     public void Quote_MissingSpacesAround_StillFixed()
     {
         Assert.Equal("Get a \"get out of jail free\" card.", Fix("Get a\"get out of jail free\"card."));

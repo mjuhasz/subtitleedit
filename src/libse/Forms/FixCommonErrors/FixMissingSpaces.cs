@@ -248,7 +248,8 @@ namespace Nikse.SubtitleEdit.Core.Forms.FixCommonErrors
                                 end++;
                             }
                         }
-                        if (end < newText.Length - 2 && !(Environment.NewLine + @" <,.!?:;])♪♫¿…'’").Contains(newText[end + 1]))
+                        var isSuffixAfterQuote = end + 2 < newText.Length && newText[end + 1] == '-' && char.IsLetter(newText[end + 2]); // e.g. Hungarian "Tudom"-nek
+                        if (end < newText.Length - 2 && !isSuffixAfterQuote && !(Environment.NewLine + @" <,.!?:;])♪♫¿…'’").Contains(newText[end + 1]))
                         {
                             if (indexOfFontTag < 0 || end > newText.IndexOf('>', indexOfFontTag)) // font tags can contain "
                             {
