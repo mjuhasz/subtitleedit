@@ -22,6 +22,9 @@ public class LanguageFixCommonErrors
     public string FixInvalidItalicTags { get; set; }
     public string RemoveUnneededSpaces { get; set; }
     public string RemoveUnneededPeriods { get; set; }
+    public string UseUnicodeEllipsis { get; set; }
+    public string UseUnicodeEllipsisExample { get; set; }
+    public string EllipsisStyle { get; set; }
     public string FixCommas { get; set; }
     public string FixMissingSpaces { get; set; }
     public string BreakLongLines { get; set; }
@@ -153,6 +156,9 @@ public class LanguageFixCommonErrors
         FixInvalidItalicTags = "Fix invalid italic tags";
         RemoveUnneededSpaces = "Remove unneeded spaces";
         RemoveUnneededPeriods = "Remove unneeded periods";
+        UseUnicodeEllipsis = "Use … instead of ...";
+        UseUnicodeEllipsisExample = "Wait... -> Wait…";
+        EllipsisStyle = "Ellipsis style";
         FixCommas = "Fix commas";
         FixMissingSpaces = "Fix missing spaces";
         BreakLongLines = "Break long lines";

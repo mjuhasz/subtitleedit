@@ -112,6 +112,7 @@ public partial class FixRuleDisplayItem : ObservableObject
             new FixTurkishAnsiToUnicode(),
             new FixUnnecessaryLeadingDots(),
             new FixUnneededPeriods(),
+            new FixEllipsisStyle(),
             new FixUnneededSpaces(),
             new FixUppercaseIInsideWords(),
             new NormalizeStrings(),

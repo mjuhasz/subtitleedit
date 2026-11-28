@@ -1301,6 +1301,7 @@ public class Se
                     nameof(FixUnneededSpaces),
                     nameof(FixMissingSpaces),
                     nameof(FixUnneededPeriods),
+                    nameof(FixEllipsisStyle),
                 },
             });
             Settings.Tools.FixCommonErrors.LastProfileName = "Default";

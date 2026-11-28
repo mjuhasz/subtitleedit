@@ -933,6 +933,8 @@ public partial class FixCommonErrorsViewModel : ObservableObject, IFixCallbacks
 
         FixUnneededPeriods.Language.RemoveUnneededPeriods = language.RemoveUnneededPeriods;
         FixUnneededPeriods.Language.UnneededPeriod = language.UnneededPeriod;
+        FixEllipsisStyle.Language.EllipsisStyle = language.EllipsisStyle;
+        FixEllipsisStyle.Language.UseUnicodeEllipsis = language.UseUnicodeEllipsis;
 
         FixCommas.Language.FixCommas = language.FixCommas;
 
@@ -1005,6 +1007,7 @@ public partial class FixCommonErrorsViewModel : ObservableObject, IFixCallbacks
             new(language.RemoveUnneededSpaces, language.RemoveUnneededSpacesExample, 1, true, nameof(FixUnneededSpaces)),
             new(language.FixMissingSpaces, language.FixMissingSpacesExample, 1, true, nameof(FixMissingSpaces)),
             new(language.RemoveUnneededPeriods, language.RemoveUnneededPeriodsExample, 1, true, nameof(FixUnneededPeriods)),
+            new(language.UseUnicodeEllipsis, language.UseUnicodeEllipsisExample, 1, true, nameof(FixEllipsisStyle)),
             new(language.FixCommas, language.FixCommasExample, 1, true, nameof(FixCommas)),
             new(language.BreakLongLines, string.Empty, 1, true, nameof(FixLongLines)),
             new(language.RemoveLineBreaks, language.RemoveLineBreaksExample, 1, true, nameof(FixShortLines)),
